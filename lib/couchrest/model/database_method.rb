@@ -52,7 +52,7 @@ module CouchRest
       protected
 
       def call_database_method
-        if self.respond_to?(self.class.database_method)
+        if self.respond_to?(self.class.database_method, true)
           name = self.send(self.class.database_method)
           self.class.db_name_with_prefix(name)
         else
@@ -72,7 +72,7 @@ module CouchRest
 
         def database
           if database_method
-            if !self.respond_to?(database_method)
+            if !self.respond_to?(database_method, true)
               raise ArgumentError.new("Incorrect argument to database_method(): no such method '#{method}' found in class #{self}.")
             end
             self.server.database(call_database_method)

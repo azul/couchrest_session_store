@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/test_helper')
+require 'test_helper'
 
 class SessionStoreTest < MiniTest::Test
 
@@ -25,9 +25,8 @@ class SessionStoreTest < MiniTest::Test
   def test_prevent_access_to_design_docs
     sid = '_design/bla'
     session = {views: 'my hacked view'}
-    assert_raises CouchRest::NotFound do
-      store_session(sid, session)
-    end
+    store_session(sid, session)
+    assert_nil CouchRest::Session::Document.database.get('_design/bla')
   end
 
   def test_unmarshalled_session_flow
@@ -99,9 +98,7 @@ class SessionStoreTest < MiniTest::Test
   def test_cleanup_expired_sessions
     sid, session = expired_session
     store.cleanup(store.expired)
-    assert_raises CouchRest::NotFound do
-      CouchTester.new.get(sid)
-    end
+    assert_nil CouchTester.new.get(sid)
   end
 
   def test_keep_fresh_during_cleanup

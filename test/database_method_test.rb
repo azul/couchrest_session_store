@@ -1,4 +1,5 @@
-require_relative 'test_helper'
+require 'test_helper'
+require "byebug"
 
 class DatabaseMethodTest < MiniTest::Test
 
@@ -17,13 +18,13 @@ class DatabaseMethodTest < MiniTest::Test
   def test_instance_method
     doc1 = TestModel.new({:dbname => 'one'})
     doc1.database.create!
-    assert doc1.database.root.ends_with?('test_db_one')
+    assert_equal '/couchrest_test_db_one', doc1.database.root.path
     assert doc1.save
     doc1.update_attributes(:confirm => 'yep')
 
     doc2 = TestModel.new({:dbname => 'two'})
     doc2.database.create!
-    assert doc2.database.root.ends_with?('test_db_two')
+    assert_equal '/couchrest_test_db_two', doc2.database.root.path
     assert doc2.save
     doc2.confirm = 'sure'
     doc2.save!
@@ -48,7 +49,7 @@ class DatabaseMethodTest < MiniTest::Test
     doc_blue.database!
     doc_blue.save!
 
-    doc_blue_copy = CouchRest.get([root.sub('red','blue'), doc_blue.id].join('/'))
+    doc_blue_copy = CouchRest.get([root.to_s.sub('red','blue'), doc_blue.id].join('/'))
     assert_equal "rose", doc_blue_copy["confirm"]
 
     doc_red.database.delete!
@@ -108,9 +109,7 @@ class DatabaseMethodTest < MiniTest::Test
     assert User.find(user1.id), 'should find user in tmp_users'
     assert_equal user1.login, User.find(user1.id).login
     assert_equal 'test-user-1', User.server.database('couchrest_tmp_users').get(user1.id)['login']
-    assert_raises CouchRest::NotFound do
-      User.server.database('couchrest_users').get(user1.id)
-    end
+    assert_nil User.server.database('couchrest_users').get(user1.id)
   end
 
 end

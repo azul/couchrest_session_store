@@ -138,7 +138,7 @@ module CouchRest
             self.database!
           end
           create_rotation_filter(db)
-          if self.respond_to?(:design_doc)
+          if self.respond_to?(:design_doc, true)
             design_doc.sync!(db)
             # or maybe this?:
             #self.design_docs.each do |design|

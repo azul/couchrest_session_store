@@ -45,7 +45,6 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     # session data does not exist anymore
     return [sid, {}]
   rescue CouchRest::Unauthorized,
-    CouchRest::RequestFailed,
     Errno::EHOSTUNREACH,
     Errno::ECONNREFUSED => e
     # can't connect to couch. We add some status to the session
@@ -54,11 +53,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
-    raise CouchRest::NotFound if /^_design\/(.*)/ =~ sid
+    raise CouchRest::Unauthorized if /^_design\/(.*)/ =~ sid
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
-  # if we can't store the session we just return false.
+    # if we can't store the session we just return false.
   rescue CouchRest::Unauthorized,
     CouchRest::RequestFailed,
     Errno::EHOSTUNREACH,
