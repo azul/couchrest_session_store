@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.files = `git ls-files`.split("\n")
   gem.name = "couchrest_session_store"
   gem.require_paths = ["lib"]
-  gem.version = '0.4.0'
+  gem.version = '0.4.2'
 
   gem.cert_chain  = ['certs/azul.pem']
   gem.signing_key = File.expand_path("~/.ssh/gem-private_key.pem") if $0 =~ /gem\z/
