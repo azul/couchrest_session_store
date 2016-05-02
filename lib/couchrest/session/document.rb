@@ -27,7 +27,7 @@ class CouchRest::Session::Document < CouchRest::Document
     doc = self.fetch(sid)
     doc.update(session, options)
     return doc
-  rescue RestClient::ResourceNotFound
+  rescue CouchRest::NotFound
     self.build(sid, session, options)
   end
 
@@ -42,7 +42,7 @@ class CouchRest::Session::Document < CouchRest::Document
     db = super(name)
     begin
       db.get('_design/Session')
-    rescue RestClient::ResourceNotFound
+    rescue CouchRest::NotFound
       design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
       design = JSON.parse(design)
       db.save_doc(design.merge({"_id" => "_design/Session"}))
@@ -81,10 +81,10 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def save
     database.save_doc(doc)
-  rescue RestClient::Conflict
+  rescue CouchRest::Conflict
     fetch
     retry
-  rescue RestClient::ResourceNotFound => exc
+  rescue CouchRest::NotFound => exc
     if exc.http_body =~ /no_db_file/
       exc = CouchRest::StorageMissing.new(exc.response, database)
     end

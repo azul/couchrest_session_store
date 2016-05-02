@@ -107,7 +107,7 @@ module CouchRest
           begin
             CouchRest.head "#{self.server.uri}/#{name}"
             return true
-          rescue RestClient::ResourceNotFound
+          rescue CouchRest::NotFound
             return false
           end
         end

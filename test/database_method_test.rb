@@ -108,7 +108,7 @@ class DatabaseMethodTest < MiniTest::Test
     assert User.find(user1.id), 'should find user in tmp_users'
     assert_equal user1.login, User.find(user1.id).login
     assert_equal 'test-user-1', User.server.database('couchrest_tmp_users').get(user1.id)['login']
-    assert_raises RestClient::ResourceNotFound do
+    assert_raises CouchRest::NotFound do
       User.server.database('couchrest_users').get(user1.id)
     end
   end

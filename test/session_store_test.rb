@@ -25,7 +25,7 @@ class SessionStoreTest < MiniTest::Test
   def test_prevent_access_to_design_docs
     sid = '_design/bla'
     session = {views: 'my hacked view'}
-    assert_raises RestClient::ResourceNotFound do
+    assert_raises CouchRest::NotFound do
       store_session(sid, session)
     end
   end
@@ -99,7 +99,7 @@ class SessionStoreTest < MiniTest::Test
   def test_cleanup_expired_sessions
     sid, session = expired_session
     store.cleanup(store.expired)
-    assert_raises RestClient::ResourceNotFound do
+    assert_raises CouchRest::NotFound do
       CouchTester.new.get(sid)
     end
   end
