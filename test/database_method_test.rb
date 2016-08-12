@@ -3,59 +3,6 @@ require "byebug"
 
 class DatabaseMethodTest < MiniTest::Test
 
-  class TestModel < CouchRest::Model::Base
-    include CouchRest::Model::DatabaseMethod
-
-    use_database_method :db_name
-    property :dbname, String
-    property :confirm, String
-
-    def db_name
-      "test_db_#{self[:dbname]}"
-    end
-  end
-
-  def test_instance_method
-    doc1 = TestModel.new({:dbname => 'one'})
-    doc1.database.create!
-    assert_equal '/couchrest_test_db_one', doc1.database.root.path
-    assert doc1.save
-    doc1.update_attributes(:confirm => 'yep')
-
-    doc2 = TestModel.new({:dbname => 'two'})
-    doc2.database.create!
-    assert_equal '/couchrest_test_db_two', doc2.database.root.path
-    assert doc2.save
-    doc2.confirm = 'sure'
-    doc2.save!
-
-    doc1_copy = CouchRest.get([doc1.database.root, doc1.id].join('/'))
-    assert_equal "yep", doc1_copy["confirm"]
-
-    doc2_copy = CouchRest.get([doc2.database.root, doc2.id].join('/'))
-    assert_equal "sure", doc2_copy["confirm"]
-
-    doc1.database.delete!
-    doc2.database.delete!
-  end
-
-  def test_switch_db
-    doc_red = TestModel.new({:dbname => 'red', :confirm => 'rose'})
-    doc_red.database.create!
-    root = doc_red.database.root
-
-    doc_blue = doc_red.clone
-    doc_blue.dbname = 'blue'
-    doc_blue.database!
-    doc_blue.save!
-
-    doc_blue_copy = CouchRest.get([root.to_s.sub('red','blue'), doc_blue.id].join('/'))
-    assert_equal "rose", doc_blue_copy["confirm"]
-
-    doc_red.database.delete!
-    doc_blue.database.delete!
-  end
-
   #
   # A test scenario for database_method in which some user accounts
   # are stored in a seperate temporary database (so that the test

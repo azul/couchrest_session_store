@@ -4,61 +4,13 @@
 # Unlike normal CouchRest::Model, the database is not automatically created
 # unless you call database!()
 #
-# The method specified by `database_method` must exist as a class method but
-# may optionally also exist as an instance method.
+# The method specified by `database_method` must exist as a class method.
 #
 
 module CouchRest
   module Model
     module DatabaseMethod
       extend ActiveSupport::Concern
-
-      def database
-        if self.class.database_method
-          self.class.server.database(call_database_method)
-        else
-          self.class.database
-        end
-      end
-
-      def database!
-        if self.class.database_method
-          self.class.server.database!(call_database_method)
-        else
-          self.class.database!
-        end
-      end
-
-      def database_exists?(db_name)
-        self.class.database_exists?(db_name)
-      end
-
-      #
-      # The normal CouchRest::Model::Base comparison checks if the model's
-      # database objects are the same. That is not good for use here, since
-      # the objects will always be different. Instead, we compare the string
-      # that each database evaluates to.
-      #
-      def ==(other)
-        return false unless other.is_a?(Base)
-        if id.nil? && other.id.nil?
-          to_hash == other.to_hash
-        else
-          id == other.id && database.to_s == other.database.to_s
-        end
-      end
-      alias :eql? :==
-
-      protected
-
-      def call_database_method
-        if self.respond_to?(self.class.database_method, true)
-          name = self.send(self.class.database_method)
-          self.class.db_name_with_prefix(name)
-        else
-          self.class.send(:call_database_method)
-        end
-      end
 
       module ClassMethods
 
