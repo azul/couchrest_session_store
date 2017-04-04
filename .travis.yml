@@ -1,6 +1,9 @@
 services:
   - couchdb
+# the default bundler version on travis is very old and causes 2.1.5. build issues
+before_install:
+  - gem install bundler
+before_scripe:
+  - "test/setup_couch.sh"
 notifications:
   email: false
-before_script:
-  - "test/setup_couch.sh"

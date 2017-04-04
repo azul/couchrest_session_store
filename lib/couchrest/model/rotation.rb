@@ -10,19 +10,19 @@ module CouchRest
 
       def create(*args)
         super(*args)
-      rescue RestClient::ResourceNotFound => exc
+      rescue CouchRest::NotFound => exc
         raise storage_missing(exc)
       end
 
       def update(*args)
         super(*args)
-      rescue RestClient::ResourceNotFound => exc
+      rescue CouchRest::NotFound => exc
         raise storage_missing(exc)
       end
 
       def destroy(*args)
         super(*args)
-      rescue RestClient::ResourceNotFound => exc
+      rescue CouchRest::NotFound => exc
         raise storage_missing(exc)
       end
 
@@ -138,7 +138,7 @@ module CouchRest
             self.database!
           end
           create_rotation_filter(db)
-          if self.respond_to?(:design_doc)
+          if self.respond_to?(:design_doc, true)
             design_doc.sync!(db)
             # or maybe this?:
             #self.design_docs.each do |design|
@@ -180,7 +180,7 @@ module CouchRest
             design = doc_hash['doc']
             begin
               to.get(design['_id'])
-            rescue RestClient::ResourceNotFound
+            rescue CouchRest::NotFound
               design.delete('_rev')
               to.save_doc(design)
             end
@@ -198,7 +198,7 @@ module CouchRest
           end
           filters = {"not_expired" => filter_string}
           db.save_doc("_id" => "_design/#{name}", "filters" => filters)
-        rescue RestClient::Conflict
+        rescue CouchRest::Conflict
         end
 
         #

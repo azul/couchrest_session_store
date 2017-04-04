@@ -1,6 +1,6 @@
 module CouchRest
 
-  class StorageMissing < RestClient::Exception
+  class StorageMissing < Exception
     attr_reader :db
     def initialize(request, db)
       super(request)

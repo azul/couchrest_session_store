@@ -41,10 +41,10 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     else
       [generate_sid, {}]
     end
-  rescue RestClient::ResourceNotFound
+  rescue CouchRest::NotFound
     # session data does not exist anymore
     return [sid, {}]
-  rescue RestClient::Unauthorized,
+  rescue CouchRest::Unauthorized,
     Errno::EHOSTUNREACH,
     Errno::ECONNREFUSED => e
     # can't connect to couch. We add some status to the session
@@ -53,13 +53,13 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
-    raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
+    raise CouchRest::Unauthorized if /^_design\/(.*)/ =~ sid
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
-  # if we can't store the session we just return false.
-  rescue RestClient::Unauthorized,
-    RestClient::ServiceUnavailable,
+    # if we can't store the session we just return false.
+  rescue CouchRest::Unauthorized,
+    CouchRest::RequestFailed,
     Errno::EHOSTUNREACH,
     Errno::ECONNREFUSED => e
     return false
@@ -69,7 +69,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     doc = secure_get(sid)
     doc.delete
     generate_sid unless options[:drop]
-  rescue RestClient::ResourceNotFound
+  rescue CouchRest::NotFound
     # already destroyed - we're done.
     generate_sid unless options[:drop]
   end
@@ -88,7 +88,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   # this should be prevented on a couch permission level as well.
   # but better be save than sorry.
   def secure_get(sid)
-    raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
+    raise CouchRest::NotFound if /^_design\/(.*)/ =~ sid
     CouchRest::Session::Document.fetch(sid)
   end
 

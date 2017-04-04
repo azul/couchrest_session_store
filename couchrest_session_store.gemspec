@@ -14,11 +14,14 @@ Gem::Specification.new do |gem|
   gem.files = `git ls-files`.split("\n")
   gem.name = "couchrest_session_store"
   gem.require_paths = ["lib"]
-  gem.version = '0.3.1'
+  gem.version = '0.4.2'
 
-  gem.add_dependency "couchrest"
-  gem.add_dependency "couchrest_model"
-  gem.add_dependency "actionpack", '~> 3.0'
+  gem.cert_chain  = ['certs/azul.pem']
+  gem.signing_key = File.expand_path("~/.ssh/gem-private_key.pem") if $0 =~ /gem\z/
+
+  gem.add_dependency "couchrest", "~> 2.0.0.rc3"
+  gem.add_dependency "couchrest_model", "~> 2.1.0.beta2"
+  gem.add_dependency "actionpack", '~> 4.0'
 
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "rake"

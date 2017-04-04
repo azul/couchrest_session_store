@@ -27,13 +27,13 @@ class CouchRest::Session::Document < CouchRest::Document
     doc = self.fetch(sid)
     doc.update(session, options)
     return doc
-  rescue RestClient::ResourceNotFound
+  rescue CouchRest::NotFound
     self.build(sid, session, options)
   end
 
   def self.find_by_expires(options = {})
     options[:reduce] ||= false
-    design = database.get '_design/Session'
+    design = database.get! '_design/Session'
     response = design.view :by_expires, options
     response['rows']
   end
@@ -41,8 +41,8 @@ class CouchRest::Session::Document < CouchRest::Document
   def self.create_database!(name=nil)
     db = super(name)
     begin
-      db.get('_design/Session')
-    rescue RestClient::ResourceNotFound
+      db.get!('_design/Session')
+    rescue CouchRest::NotFound
       design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
       design = JSON.parse(design)
       db.save_doc(design.merge({"_id" => "_design/Session"}))
@@ -55,7 +55,7 @@ class CouchRest::Session::Document < CouchRest::Document
   end
 
   def fetch(sid = nil)
-    @doc = database.get(sid || doc['_id'])
+    @doc = database.get!(sid || doc['_id'])
   end
 
   def to_session
@@ -81,10 +81,10 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def save
     database.save_doc(doc)
-  rescue RestClient::Conflict
+  rescue CouchRest::Conflict
     fetch
     retry
-  rescue RestClient::ResourceNotFound => exc
+  rescue CouchRest::NotFound => exc
     if exc.http_body =~ /no_db_file/
       exc = CouchRest::StorageMissing.new(exc.response, database)
     end
