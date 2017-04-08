@@ -47,17 +47,17 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def test_logout_in_between
-    sid, session = never_expiring_session
+    sid, _session = never_expiring_session
     store.send :destroy_session, env, sid, {}
-    other_sid, other_session = store.send(:get_session, env, sid)
+    _other_sid, other_session = store.send(:get_session, env, sid)
     assert_equal Hash.new, other_session
   end
 
   def test_can_logout_twice
-    sid, session = never_expiring_session
+    sid, _session = never_expiring_session
     store.send :destroy_session, env, sid, {}
     store.send :destroy_session, env, sid, {}
-    other_sid, other_session = store.send(:get_session, env, sid)
+    _other_sid, other_session = store.send(:get_session, env, sid)
     assert_equal Hash.new, other_session
   end
 
@@ -73,7 +73,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def test_stored_but_expired
-    sid, session = expired_session
+    sid, _session = expired_session
     other_sid, other_session = store.send(:get_session, env, sid)
     assert_equal Hash.new, other_session, "session should have expired"
     assert other_sid != sid
@@ -96,7 +96,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def test_cleanup_expired_sessions
-    sid, session = expired_session
+    sid, _session = expired_session
     store.cleanup(store.expired)
     assert_nil CouchTester.new.get(sid)
   end
@@ -133,7 +133,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def never_expiring_session
-    store_session *init_session
+    store_session(*init_session)
   end
 
   def expiring_session
@@ -142,7 +142,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def expired_session
-    expire_session *expiring_session
+    expire_session(*expiring_session)
   end
 
   def init_session

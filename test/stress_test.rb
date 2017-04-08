@@ -17,11 +17,11 @@ class StressTest < MiniTest::Test
   end
 
   def test_stress
-    delete_all_dbs /^couchrest_stress_test_\d+$/
+    delete_all_dbs(/^couchrest_stress_test_\d+$/)
 
     Stress.database!
     COUNT.times do |i|
-      doc = Stress.create!(:token => SecureRandom.hex(32), :expires_at => expires(i))
+      Stress.create!(:token => SecureRandom.hex(32), :expires_at => expires(i))
     end
 
     Time.stub :now, 1.day.from_now do

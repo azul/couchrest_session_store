@@ -2,7 +2,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   # delegate configure to document
   def self.configure(*args, &block)
-    CouchRest::Session::Document.configure *args, &block
+    CouchRest::Session::Document.configure(*args, &block)
   end
 
   def self.set_options(options)
@@ -46,7 +46,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return [sid, {}]
   rescue CouchRest::Unauthorized,
     Errno::EHOSTUNREACH,
-    Errno::ECONNREFUSED => e
+    Errno::ECONNREFUSED
     # can't connect to couch. We add some status to the session
     # so the app can react. (Display error for example)
     return [sid, {"_status" => {"couch" => "unreachable"}}]
@@ -61,7 +61,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   rescue CouchRest::Unauthorized,
     CouchRest::RequestFailed,
     Errno::EHOSTUNREACH,
-    Errno::ECONNREFUSED => e
+    Errno::ECONNREFUSED
     return false
   end
 
