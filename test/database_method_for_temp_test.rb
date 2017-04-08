@@ -6,7 +6,6 @@ require 'test_helper'
 # accounts don't bloat the normal database).
 #
 class DatabaseMethodForTempTest < MiniTest::Test
-
   class User < CouchRest::Model::Base
     include CouchRest::Model::DatabaseMethod
 
