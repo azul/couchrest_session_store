@@ -14,45 +14,53 @@ class DatabaseMethodTest < MiniTest::Test
     end
   end
 
-  def test_instance_method
-    doc1 = TestModel.new(dbname: 'one')
-    doc1.database.create!
-    assert_equal '/couchrest_test_db_one', doc1.database.root.path
-    assert doc1.save
-    doc1.update_attributes(confirm: 'yep')
+  def test_instance_method_db_path
+    with_doc_and_db dbname: 'one' do |_doc, db|
+      assert_equal '/couchrest_test_db_one', db.root.path
+    end
+  end
 
-    doc2 = TestModel.new(dbname: 'two')
-    doc2.database.create!
-    assert_equal '/couchrest_test_db_two', doc2.database.root.path
-    assert doc2.save
-    doc2.confirm = 'sure'
-    doc2.save!
-
-    doc1_copy = CouchRest.get([doc1.database.root, doc1.id].join('/'))
-    assert_equal 'yep', doc1_copy['confirm']
-
-    doc2_copy = CouchRest.get([doc2.database.root, doc2.id].join('/'))
-    assert_equal 'sure', doc2_copy['confirm']
-
-    doc1.database.delete!
-    doc2.database.delete!
+  def test_instance_method_doc_retrieval
+    with_doc_and_db dbname: 'one' do |doc, db|
+      doc.save
+      doc.update_attributes(confirm: 'yep')
+      retrieved = CouchRest.get([db.root, doc.id].join('/'))
+      assert_equal 'yep', retrieved['confirm']
+    end
   end
 
   def test_switch_db
-    doc_red = TestModel.new(dbname: 'red', confirm: 'rose')
-    doc_red.database.create!
-    root = doc_red.database.root
+    with_doc_and_db dbname: 'red', confirm: 'rose' do |red, db|
+      clone_to_db 'blue', red do |blue|
+        blue_url = [db.root.to_s.sub('red', 'blue'), blue.id].join('/')
+        blue_copy = CouchRest.get blue_url
+        assert_equal 'rose', blue_copy['confirm']
+      end
+    end
+  end
 
-    doc_blue = doc_red.clone
-    doc_blue.dbname = 'blue'
-    doc_blue.database!
-    doc_blue.save!
+  def clone_to_db(dbname, doc)
+    doc.clone.tap do |clone|
+      begin
+      clone.dbname = dbname
+      clone.database!
+      clone.save!
+      yield clone
+      ensure
+        clone.database.delete!
+      end
+    end
+  end
 
-    doc_blue_copy = CouchRest.get([root.to_s.sub('red', 'blue'), doc_blue.id].join('/'))
-    assert_equal 'rose', doc_blue_copy['confirm']
-
-    doc_red.database.delete!
-    doc_blue.database.delete!
+  def with_doc_and_db(fields = {})
+    TestModel.new(fields).tap do |doc|
+      begin
+        doc.database.create!
+        yield doc, doc.database
+      ensure
+        doc.database.delete!
+      end
+    end
   end
 
   #
@@ -70,16 +78,10 @@ class DatabaseMethodTest < MiniTest::Test
 
     class << self
       def get(id, db = database)
-        result = super(id, db)
-        if result.nil?
-          return super(id, choose_database('test-user'))
-        else
-          return result
-        end
+        super(id, db) ||
+          super(id, choose_database('test-user'))
       end
       alias find get
-
-      protected
 
       def db_name(login = nil)
         if !login.nil? && login =~ /test-user/
@@ -101,12 +103,32 @@ class DatabaseMethodTest < MiniTest::Test
     end
   end
 
+  def test_tmp_user_retrival
+    with_tmp_user do |user1|
+      assert_equal user1, User.find(user1.id),
+        'should find temp user through User.find'
+    end
+  end
+
   def test_tmp_user_db
-    user1 = User.new(login: 'test-user-1')
-    assert user1.save
-    assert User.find(user1.id), 'should find user in tmp_users'
-    assert_equal user1.login, User.find(user1.id).login
-    assert_equal 'test-user-1', User.server.database('couchrest_tmp_users').get(user1.id)['login']
-    assert_nil User.server.database('couchrest_users').get(user1.id)
+    with_tmp_user do |user1|
+      tmp_db = User.server.database('couchrest_tmp_users')
+      tmp_record = tmp_db.get(user1.id)
+      assert_equal user1.login, tmp_record[:login]
+    end
+  end
+
+  def test_tmp_user_not_in_normal_db
+    with_tmp_user do |user1|
+      assert_nil User.server.database('couchrest_users').get(user1.id)
+    end
+  end
+
+  def with_tmp_user
+    user = User.new(login: 'test-user-1')
+    user.save
+    yield user
+  ensure
+    user.destroy
   end
 end
