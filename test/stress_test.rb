@@ -13,7 +13,7 @@ class StressTest < MiniTest::Test
     include CouchRest::Model::Rotation
     property :token, String
     property :expires_at, Time
-    rotate_database 'stress_test', :every => 1.day, :expiration_field => :expires_at
+    rotate_database 'stress_test', every: 1.day, expiration_field: :expires_at
   end
 
   def test_stress
@@ -21,11 +21,11 @@ class StressTest < MiniTest::Test
 
     Stress.database!
     COUNT.times do |i|
-      Stress.create!(:token => SecureRandom.hex(32), :expires_at => expires(i))
+      Stress.create!(token: SecureRandom.hex(32), expires_at: expires(i))
     end
 
     Time.stub :now, 1.day.from_now do
-      Stress.rotate_database_now(:window => 1.hour)
+      Stress.rotate_database_now(window: 1.hour)
       sleep 0.5
       assert_equal (COUNT/100)+1, Stress.database.info["doc_count"]
     end

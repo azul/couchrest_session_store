@@ -96,13 +96,13 @@ module CouchRest
           if !database_exists?(current_name)
             # we should have created the current db earlier, but if somehow
             # it is missing we must make sure it exists.
-            create_new_rotated_database(:from => prev_name, :to => current_name)
+            create_new_rotated_database(from: prev_name, to: current_name)
             replication_started = true
           end
 
           if next_time.to_i/@rotation_every >= next_count && !database_exists?(next_name)
             # time to create the next db in advance of actually needing it.
-            create_new_rotated_database(:from => current_name, :to => next_name)
+            create_new_rotated_database(from: current_name, to: next_name)
           end
 
           if trailing_edge_time.to_i/@rotation_every == current_count
@@ -175,7 +175,7 @@ module CouchRest
         end
 
         def copy_design_docs(from, to)
-          params = {:startkey => '_design/', :endkey => '_design0', :include_docs => true}
+          params = {startkey: '_design/', endkey: '_design0', include_docs: true}
           from.documents(params) do |doc_hash|
             design = doc_hash['doc']
             begin
@@ -190,9 +190,9 @@ module CouchRest
         def create_rotation_filter(db)
           name = 'rotation_filter'
           filter_string = if @expiration_field
-            NOT_EXPIRED_FILTER % {:expires => @expiration_field}
+            NOT_EXPIRED_FILTER % {expires: @expiration_field}
           elsif @timestamp_field && @timeout
-            NOT_TIMED_OUT_FILTER % {:timestamp => @timestamp_field, :timeout => (60 * @timeout)}
+            NOT_TIMED_OUT_FILTER % {timestamp: @timestamp_field, timeout: (60 * @timeout)}
           else
             NOT_DELETED_FILTER
           end
@@ -215,7 +215,7 @@ module CouchRest
         #
         def replicate_old_to_new(from_db, to_db)
           create_rotation_filter(from_db)
-          from_db.send(:replicate, to_db, true, :source => from_db.name, :filter => 'rotation_filter/not_expired')
+          from_db.send(:replicate, to_db, true, source: from_db.name, filter: 'rotation_filter/not_expired')
         end
 
         #
