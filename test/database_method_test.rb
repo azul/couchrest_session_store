@@ -16,13 +16,13 @@ class DatabaseMethodTest < MiniTest::Test
   end
 
   def test_instance_method
-    doc1 = TestModel.new({dbname: 'one'})
+    doc1 = TestModel.new(dbname: 'one')
     doc1.database.create!
     assert_equal '/couchrest_test_db_one', doc1.database.root.path
     assert doc1.save
     doc1.update_attributes(confirm: 'yep')
 
-    doc2 = TestModel.new({dbname: 'two'})
+    doc2 = TestModel.new(dbname: 'two')
     doc2.database.create!
     assert_equal '/couchrest_test_db_two', doc2.database.root.path
     assert doc2.save
@@ -40,7 +40,7 @@ class DatabaseMethodTest < MiniTest::Test
   end
 
   def test_switch_db
-    doc_red = TestModel.new({dbname: 'red', confirm: 'rose'})
+    doc_red = TestModel.new(dbname: 'red', confirm: 'rose')
     doc_red.database.create!
     root = doc_red.database.root
 
@@ -104,7 +104,7 @@ class DatabaseMethodTest < MiniTest::Test
   end
 
   def test_tmp_user_db
-    user1 = User.new({login: 'test-user-1'})
+    user1 = User.new(login: 'test-user-1')
     assert user1.save
     assert User.find(user1.id), 'should find user in tmp_users'
     assert_equal user1.login, User.find(user1.id).login

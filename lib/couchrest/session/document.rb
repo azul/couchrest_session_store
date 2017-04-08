@@ -17,7 +17,7 @@ class CouchRest::Session::Document < CouchRest::Document
   end
 
   def self.build(sid, session, options = {})
-    self.new(CouchRest::Document.new({"_id" => sid})).tap do |session_doc|
+    self.new(CouchRest::Document.new("_id" => sid)).tap do |session_doc|
       session_doc.update session, options
     end
   end
@@ -45,7 +45,7 @@ class CouchRest::Session::Document < CouchRest::Document
     rescue CouchRest::NotFound
       design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
       design = JSON.parse(design)
-      db.save_doc(design.merge({"_id" => "_design/Session"}))
+      db.save_doc(design.merge("_id" => "_design/Session"))
     end
     db
   end
@@ -73,7 +73,7 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def update(session, options)
     # clean up old data but leave id and revision intact
-    doc.reject! do |k,v|
+    doc.reject! do |k,_v|
       k[0] != '_'
     end
     doc.merge! data_for_doc(session, options)

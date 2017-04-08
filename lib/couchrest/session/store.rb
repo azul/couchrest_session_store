@@ -35,7 +35,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   private
 
-  def get_session(env, sid)
+  def get_session(_env, sid)
     if session = fetch_session(sid)
       [sid, session]
     else
@@ -52,7 +52,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return [sid, {"_status" => {"couch" => "unreachable"}}]
   end
 
-  def set_session(env, sid, session, options)
+  def set_session(_env, sid, session, options)
     raise CouchRest::Unauthorized if /^_design\/(.*)/ =~ sid
     doc = build_or_update_doc(sid, session, options)
     doc.save
@@ -65,7 +65,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return false
   end
 
-  def destroy_session(env, sid, options)
+  def destroy_session(_env, sid, options)
     doc = secure_get(sid)
     doc.delete
     generate_sid unless options[:drop]
