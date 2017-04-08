@@ -5,7 +5,7 @@ class RotationTest < MiniTest::Test
   class Token < CouchRest::Model::Base
     include CouchRest::Model::Rotation
     property :token, String
-    rotate_database 'test_rotate', :every => 1.day
+    rotate_database 'test_rotate', every: 1.day
   end
 
   TEST_DB_RE = /test_rotate_\d+/
@@ -18,7 +18,7 @@ class RotationTest < MiniTest::Test
 
     Time.stub :now, Time.gm(2015,3,7,0) do
       Token.create_database!
-      doc = Token.create!(:token => 'aaaa')
+      doc = Token.create!(token: 'aaaa')
       original_name = Token.rotated_database_name
       assert database_exists?(original_name)
       assert_equal 1, count_dbs
@@ -26,14 +26,14 @@ class RotationTest < MiniTest::Test
 
     # do nothing yet
     Time.stub :now, Time.gm(2015,3,7,22) do
-      Token.rotate_database_now(:window => 1.hour)
+      Token.rotate_database_now(window: 1.hour)
       assert_equal original_name, Token.rotated_database_name
       assert_equal 1, count_dbs
     end
 
     # create next db, but don't switch yet.
     Time.stub :now, Time.gm(2015,3,7,23) do
-      Token.rotate_database_now(:window => 1.hour)
+      Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
       next_db_name = Token.rotated_database_name(Time.gm(2015,3,8))
       assert original_name != next_db_name
@@ -47,18 +47,18 @@ class RotationTest < MiniTest::Test
 
     # use next db
     Time.stub :now, Time.gm(2015,3,8) do
-      Token.rotate_database_now(:window => 1.hour)
+      Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
       assert_equal next_db_name, Token.rotated_database_name
       token = Token.get(doc.id)
-      token.update_attributes(:token => 'bbbb')
+      token.update_attributes(token: 'bbbb')
       assert_equal 'bbbb', Token.get(doc.id).token
       assert_equal 'aaaa', Token.get(doc.id, database(original_name)).token
     end
 
     # delete prior db
     Time.stub :now, Time.gm(2015,3,8,1) do
-      Token.rotate_database_now(:window => 1.hour)
+      Token.rotate_database_now(window: 1.hour)
       assert_equal 1, count_dbs
     end
   end

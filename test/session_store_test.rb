@@ -31,7 +31,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_unmarshalled_session_flow
     sid, session = init_session
-    store_session sid, session, :marshal_data => false
+    store_session sid, session, marshal_data: false
     new_sid, new_session = store.send(:get_session, env, sid)
     assert_equal sid, new_sid
     assert_equal session[:key], new_session["key"]
@@ -40,7 +40,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_unmarshalled_data
     sid, session = init_session
-    store_session sid, session, :marshal_data => false
+    store_session sid, session, marshal_data: false
     couch = CouchTester.new
     data = couch.get(sid)["data"]
     assert_equal session[:key], data["key"]
