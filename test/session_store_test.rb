@@ -157,7 +157,7 @@ class SessionStoreTest < MiniTest::Test
 
   def expire_session(sid, session)
     CouchTester.new.update sid,
-                           'expires' => (Time.now - 10.minutes).utc.iso8601
+      'expires' => (Time.now - 10.minutes).utc.iso8601
     [sid, session]
   end
 end

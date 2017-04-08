@@ -8,7 +8,7 @@ class CouchRest::Session::Document < CouchRest::Document
   include CouchRest::Model::Rotation
 
   rotate_database 'sessions',
-                  every: 1.month, expiration_field: :expires
+    every: 1.month, expiration_field: :expires
 
   def self.fetch(sid)
     allocate.tap do |session_doc|
