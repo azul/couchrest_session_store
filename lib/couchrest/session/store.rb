@@ -1,5 +1,4 @@
 class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
-
   # delegate configure to document
   def self.configure(*args, &block)
     CouchRest::Session::Document.configure(*args, &block)
@@ -26,7 +25,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   def expired
     CouchRest::Session::Document.find_by_expires startkey: 1,
-      endkey: Time.now.utc.iso8601
+                                                 endkey: Time.now.utc.iso8601
   end
 
   def never_expiring
@@ -42,11 +41,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     # session data does not exist anymore
     return [sid, {}]
   rescue CouchRest::Unauthorized,
-    Errno::EHOSTUNREACH,
-    Errno::ECONNREFUSED
+         Errno::EHOSTUNREACH,
+         Errno::ECONNREFUSED
     # can't connect to couch. We add some status to the session
     # so the app can react. (Display error for example)
-    return [sid, {"_status" => {"couch" => "unreachable"}}]
+    return [sid, { '_status' => { 'couch' => 'unreachable' } }]
   end
 
   def set_session(_env, sid, session, options)
@@ -56,9 +55,9 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return sid
     # if we can't store the session we just return false.
   rescue CouchRest::Unauthorized,
-    CouchRest::RequestFailed,
-    Errno::EHOSTUNREACH,
-    Errno::ECONNREFUSED
+         CouchRest::RequestFailed,
+         Errno::EHOSTUNREACH,
+         Errno::ECONNREFUSED
     return false
   end
 
@@ -88,5 +87,4 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     raise CouchRest::NotFound if /^_design\/(.*)/ =~ sid
     CouchRest::Session::Document.fetch(sid)
   end
-
 end

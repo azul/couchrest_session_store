@@ -56,14 +56,14 @@ module CouchRest
         # * :timeout -- used to expire documents with only a timestamp
         #               field (in minutes)
         #
-        def rotate_database(base_name, options={})
+        def rotate_database(base_name, options = {})
           @rotation_base_name = base_name
           @rotation_every = (options.delete(:every) || 30.days).to_i
           @expiration_field = options.delete(:expiration_field)
           @timestamp_field = options.delete(:timestamp_field)
           @timeout = options.delete(:timeout)
           if options.any?
-            raise ArgumentError.new('Could not understand options %s' % options.keys)
+            raise ArgumentError, 'Could not understand options %s' % options.keys
           end
         end
 
@@ -75,51 +75,51 @@ module CouchRest
         # This method relies on the assumption that it is called
         # at least once within each @rotation_every period.
         #
-        def rotate_database_now(options={})
+        def rotate_database_now(options = {})
           window = options[:window] || 1.day
 
           now = Time.now.utc
           current_name = rotated_database_name(now)
-          current_count = now.to_i/@rotation_every
+          current_count = now.to_i / @rotation_every
 
           next_time = window.from_now.utc
           next_name = rotated_database_name(next_time)
-          next_count = current_count+1
+          next_count = current_count + 1
 
-          prev_name = current_name.sub(/(\d+)$/) {|i| i.to_i-1}
+          prev_name = current_name.sub(/(\d+)$/) { |i| i.to_i - 1 }
           replication_started = false
-          old_name = prev_name.sub(/(\d+)$/) {|i| i.to_i-1} # even older than prev_name
+          old_name = prev_name.sub(/(\d+)$/) { |i| i.to_i - 1 } # even older than prev_name
           trailing_edge_time = window.ago.utc
 
-          if !database_exists?(current_name)
+          unless database_exists?(current_name)
             # we should have created the current db earlier, but if somehow
             # it is missing we must make sure it exists.
             create_new_rotated_database(from: prev_name, to: current_name)
             replication_started = true
           end
 
-          if next_time.to_i/@rotation_every >= next_count && !database_exists?(next_name)
+          if next_time.to_i / @rotation_every >= next_count && !database_exists?(next_name)
             # time to create the next db in advance of actually needing it.
             create_new_rotated_database(from: current_name, to: next_name)
           end
 
-          if trailing_edge_time.to_i/@rotation_every == current_count
+          if trailing_edge_time.to_i / @rotation_every == current_count
             # delete old dbs, but only after window time has past since the last rotation
             if !replication_started && database_exists?(prev_name)
               # delete previous, but only if we didn't just start replicating from it
-              self.server.database(db_name_with_prefix(prev_name)).delete!
+              server.database(db_name_with_prefix(prev_name)).delete!
             end
             if database_exists?(old_name)
               # there are some edge cases, when rotate_database_now is run
               # infrequently, that an older db might be left around.
-              self.server.database(db_name_with_prefix(old_name)).delete!
+              server.database(db_name_with_prefix(old_name)).delete!
             end
           end
         end
 
-        def rotated_database_name(time=nil)
+        def rotated_database_name(time = nil)
           unless @rotation_base_name && @rotation_every
-            raise ArgumentError.new('missing @rotation_base_name or @rotation_every')
+            raise ArgumentError, 'missing @rotation_base_name or @rotation_every'
           end
           time ||= Time.now.utc
           units = time.to_i / @rotation_every.to_i
@@ -129,21 +129,21 @@ module CouchRest
         #
         # create a new empty database.
         #
-        def create_database!(name=nil)
+        def create_database!(name = nil)
           db = if name
-                 self.server.database!(db_name_with_prefix(name))
+                 server.database!(db_name_with_prefix(name))
                else
-                 self.database!
+                 database!
                end
           create_rotation_filter(db)
-          if self.respond_to?(:design_doc, true)
+          if respond_to?(:design_doc, true)
             design_doc.sync!(db)
             # or maybe this?:
-            #self.design_docs.each do |design|
+            # self.design_docs.each do |design|
             #  design.migrate(to_db)
-            #end
+            # end
           end
-          return db
+          db
         end
 
         protected
@@ -158,22 +158,22 @@ module CouchRest
         # db, in the CouchRest::Model, or in a database named after
         # @rotation_base_name.
         #
-        def create_new_rotated_database(options={})
+        def create_new_rotated_database(options = {})
           from = options[:from]
           to = options[:to]
-          to_db = self.create_database!(to)
+          to_db = create_database!(to)
           if database_exists?(@rotation_base_name)
-            base_db = self.server.database(db_name_with_prefix(@rotation_base_name))
+            base_db = server.database(db_name_with_prefix(@rotation_base_name))
             copy_design_docs(base_db, to_db)
           end
           if from && from != to && database_exists?(from)
-            from_db = self.server.database(db_name_with_prefix(from))
+            from_db = server.database(db_name_with_prefix(from))
             replicate_old_to_new(from_db, to_db)
           end
         end
 
         def copy_design_docs(from, to)
-          params = {startkey: '_design/', endkey: '_design0', include_docs: true}
+          params = { startkey: '_design/', endkey: '_design0', include_docs: true }
           from.documents(params) do |doc_hash|
             design = doc_hash['doc']
             begin
@@ -187,16 +187,16 @@ module CouchRest
 
         def create_rotation_filter(db)
           name = 'rotation_filter'
-          filters = {"not_expired" => filter_string}
-          db.save_doc("_id" => "_design/#{name}", "filters" => filters)
+          filters = { 'not_expired' => filter_string }
+          db.save_doc('_id' => "_design/#{name}", 'filters' => filters)
         rescue CouchRest::Conflict
         end
 
         def filter_string
           if @expiration_field
-            NOT_EXPIRED_FILTER % {expires: @expiration_field}
+            NOT_EXPIRED_FILTER % { expires: @expiration_field }
           elsif @timestamp_field && @timeout
-            NOT_TIMED_OUT_FILTER % {timestamp: @timestamp_field, timeout: (60 * @timeout)}
+            NOT_TIMED_OUT_FILTER % { timestamp: @timestamp_field, timeout: (60 * @timeout) }
           else
             NOT_DELETED_FILTER
           end
@@ -231,33 +231,32 @@ module CouchRest
         #
         # NOT_DELETED_FILTER is used when the other two cannot be.
         #
-        NOT_EXPIRED_FILTER = "" +
-%[function(doc, req) {
-  if (doc._deleted) {
-    return false;
-  } else if (typeof(doc.%{expires}) != "undefined") {
-    return Date.now() < (new Date(doc.%{expires})).getTime();
-  } else {
-    return true;
-  }
-}]
+        NOT_EXPIRED_FILTER = '' +
+                             %[function(doc, req) {
+                               if (doc._deleted) {
+                                 return false;
+                               } else if (typeof(doc.%{expires}) != "undefined") {
+                                 return Date.now() < (new Date(doc.%{expires})).getTime();
+                               } else {
+                                 return true;
+                               }
+                             }]
 
-        NOT_TIMED_OUT_FILTER = "" +
-%[function(doc, req) {
-  if (doc._deleted) {
-    return false;
-  } else if (typeof(doc.%{timestamp}) != "undefined") {
-    return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
-  } else {
-    return true;
-  }
-}]
+        NOT_TIMED_OUT_FILTER = '' +
+                               %[function(doc, req) {
+                                 if (doc._deleted) {
+                                   return false;
+                                 } else if (typeof(doc.%{timestamp}) != "undefined") {
+                                   return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
+                                 } else {
+                                   return true;
+                                 }
+                               }]
 
-        NOT_DELETED_FILTER = "" +
-%[function(doc, req) {
-  return !doc._deleted;
-}]
-
+        NOT_DELETED_FILTER = '' +
+                             %[function(doc, req) {
+                               return !doc._deleted;
+                             }]
       end
     end
   end

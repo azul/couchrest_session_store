@@ -1,7 +1,6 @@
 require_relative 'test_helper'
 
 class RotationTest < MiniTest::Test
-
   class Token < CouchRest::Model::Base
     include CouchRest::Model::Rotation
     property :token, String
@@ -16,7 +15,7 @@ class RotationTest < MiniTest::Test
     original_name = nil
     next_db_name = nil
 
-    Time.stub :now, Time.gm(2015,3,7,0) do
+    Time.stub :now, Time.gm(2015, 3, 7, 0) do
       Token.create_database!
       doc = Token.create!(token: 'aaaa')
       original_name = Token.rotated_database_name
@@ -25,17 +24,17 @@ class RotationTest < MiniTest::Test
     end
 
     # do nothing yet
-    Time.stub :now, Time.gm(2015,3,7,22) do
+    Time.stub :now, Time.gm(2015, 3, 7, 22) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal original_name, Token.rotated_database_name
       assert_equal 1, count_dbs
     end
 
     # create next db, but don't switch yet.
-    Time.stub :now, Time.gm(2015,3,7,23) do
+    Time.stub :now, Time.gm(2015, 3, 7, 23) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
-      next_db_name = Token.rotated_database_name(Time.gm(2015,3,8))
+      next_db_name = Token.rotated_database_name(Time.gm(2015, 3, 8))
       assert original_name != next_db_name
       assert database_exists?(next_db_name)
       sleep 0.2 # allow time for documents to replicate
@@ -46,7 +45,7 @@ class RotationTest < MiniTest::Test
     end
 
     # use next db
-    Time.stub :now, Time.gm(2015,3,8) do
+    Time.stub :now, Time.gm(2015, 3, 8) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
       assert_equal next_db_name, Token.rotated_database_name
@@ -57,7 +56,7 @@ class RotationTest < MiniTest::Test
     end
 
     # delete prior db
-    Time.stub :now, Time.gm(2015,3,8,1) do
+    Time.stub :now, Time.gm(2015, 3, 8, 1) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal 1, count_dbs
     end
@@ -73,16 +72,13 @@ class RotationTest < MiniTest::Test
     Token.database_exists?(dbname)
   end
 
-  def delete_all_dbs(regexp=TEST_DB_RE)
+  def delete_all_dbs(regexp = TEST_DB_RE)
     Token.server.databases.each do |db|
-      if regexp.match(db)
-        Token.server.database(db).delete!
-      end
+      Token.server.database(db).delete! if regexp.match(db)
     end
   end
 
-  def count_dbs(regexp=TEST_DB_RE)
+  def count_dbs(regexp = TEST_DB_RE)
     Token.server.databases.grep(regexp).count
   end
-
 end

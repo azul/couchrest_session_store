@@ -8,5 +8,4 @@ module CouchRest::Session::Utility
   def unmarshal(data)
     Marshal.load(::Base64.decode64(data)) if data
   end
-
 end

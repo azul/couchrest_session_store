@@ -8,27 +8,27 @@ class CouchRest::Session::Document < CouchRest::Document
   include CouchRest::Model::Rotation
 
   rotate_database 'sessions',
-    every: 1.month, expiration_field: :expires
+                  every: 1.month, expiration_field: :expires
 
   def self.fetch(sid)
-    self.allocate.tap do |session_doc|
+    allocate.tap do |session_doc|
       session_doc.fetch(sid)
     end
   end
 
   def self.build(sid, session, options = {})
-    self.new(CouchRest::Document.new("_id" => sid)).tap do |session_doc|
+    new(CouchRest::Document.new('_id' => sid)).tap do |session_doc|
       session_doc.update session, options
     end
   end
 
   def self.build_or_update(sid, session, options = {})
     options[:marshal_data] = true if options[:marshal_data].nil?
-    doc = self.fetch(sid)
+    doc = fetch(sid)
     doc.update(session, options)
     return doc
   rescue CouchRest::NotFound
-    self.build(sid, session, options)
+    build(sid, session, options)
   end
 
   def self.find_by_expires(options = {})
@@ -38,14 +38,14 @@ class CouchRest::Session::Document < CouchRest::Document
     response['rows']
   end
 
-  def self.create_database!(name=nil)
+  def self.create_database!(name = nil)
     db = super(name)
     begin
       db.get!('_design/Session')
     rescue CouchRest::NotFound
       design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
       design = JSON.parse(design)
-      db.save_doc(design.merge("_id" => "_design/Session"))
+      db.save_doc(design.merge('_id' => '_design/Session'))
     end
     db
   end
@@ -59,12 +59,12 @@ class CouchRest::Session::Document < CouchRest::Document
   end
 
   def to_session
-    if doc["marshalled"]
-      session = unmarshal(doc["data"])
-    else
-      session = doc["data"]
-    end
-    return session
+    session = if doc['marshalled']
+                unmarshal(doc['data'])
+              else
+                doc['data']
+              end
+    session
   end
 
   def delete
@@ -73,9 +73,7 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def update(session, options)
     # clean up old data but leave id and revision intact
-    doc.reject! do |k,_v|
-      k[0] != '_'
-    end
+    doc.reject! {|k, _v| k[0] != '_'}
     doc.merge! data_for_doc(session, options)
   end
 
@@ -98,9 +96,9 @@ class CouchRest::Session::Document < CouchRest::Document
   protected
 
   def data_for_doc(session, options)
-    { "data" => options[:marshal_data] ? marshal(session) : session,
-      "marshalled" => options[:marshal_data],
-      "expires" => expiry_from_options(options) }
+    { 'data' => options[:marshal_data] ? marshal(session) : session,
+      'marshalled' => options[:marshal_data],
+      'expires' => expiry_from_options(options) }
   end
 
   def expiry_from_options(options)
@@ -109,11 +107,8 @@ class CouchRest::Session::Document < CouchRest::Document
   end
 
   def expires
-    doc["expires"] && Time.iso8601(doc["expires"])
+    doc['expires'] && Time.iso8601(doc['expires'])
   end
 
-  def doc
-    @doc
-  end
-
+  attr_reader :doc
 end

@@ -1,5 +1,4 @@
 module CouchRest
-
   class StorageMissing < RuntimeError
     attr_reader :db
     def initialize(request, db)
@@ -12,4 +11,3 @@ module CouchRest
   module Session
   end
 end
-

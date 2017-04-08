@@ -1,11 +1,10 @@
 require 'test_helper'
 
 class SessionStoreTest < MiniTest::Test
-
   def test_session_initialization
     sid, session = store.send :get_session, env, nil
     assert sid
-    assert_equal Hash.new, session
+    assert_equal({}, session)
   end
 
   def test_normal_session_flow
@@ -16,7 +15,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_updating_session
     sid, session = never_expiring_session
-    session[:bla] = "blub"
+    session[:bla] = 'blub'
     store.send :set_session, env, sid, session, {}
     assert_equal [sid, session], store.send(:get_session, env, sid)
     store.send :destroy_session, env, sid, {}
@@ -24,7 +23,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_prevent_access_to_design_docs
     sid = '_design/bla'
-    session = {views: 'my hacked view'}
+    session = { views: 'my hacked view' }
     store_session(sid, session)
     assert_nil CouchRest::Session::Document.database.get('_design/bla')
   end
@@ -34,7 +33,7 @@ class SessionStoreTest < MiniTest::Test
     store_session sid, session, marshal_data: false
     new_sid, new_session = store.send(:get_session, env, sid)
     assert_equal sid, new_sid
-    assert_equal session[:key], new_session["key"]
+    assert_equal session[:key], new_session['key']
     store.send :destroy_session, env, sid, {}
   end
 
@@ -42,15 +41,15 @@ class SessionStoreTest < MiniTest::Test
     sid, session = init_session
     store_session sid, session, marshal_data: false
     couch = CouchTester.new
-    data = couch.get(sid)["data"]
-    assert_equal session[:key], data["key"]
+    data = couch.get(sid)['data']
+    assert_equal session[:key], data['key']
   end
 
   def test_logout_in_between
     sid, _session = never_expiring_session
     store.send :destroy_session, env, sid, {}
     _other_sid, other_session = store.send(:get_session, env, sid)
-    assert_equal Hash.new, other_session
+    assert_equal({}, other_session)
   end
 
   def test_can_logout_twice
@@ -58,7 +57,7 @@ class SessionStoreTest < MiniTest::Test
     store.send :destroy_session, env, sid, {}
     store.send :destroy_session, env, sid, {}
     _other_sid, other_session = store.send(:get_session, env, sid)
-    assert_equal Hash.new, other_session
+    assert_equal({}, other_session)
   end
 
   def test_stored_and_not_expired_yet
@@ -67,21 +66,21 @@ class SessionStoreTest < MiniTest::Test
     expires = doc.send :expires
     assert expires
     assert !doc.expired?
-    assert (expires - Time.now) > 0, "Exiry should be in the future"
-    assert (expires - Time.now) <= 300, "Should expire after 300 seconds - not more"
+    assert (expires - Time.now) > 0, 'Exiry should be in the future'
+    assert (expires - Time.now) <= 300, 'Should expire after 300 seconds - not more'
     assert_equal [sid, session], store.send(:get_session, env, sid)
   end
 
   def test_stored_but_expired
     sid, _session = expired_session
     other_sid, other_session = store.send(:get_session, env, sid)
-    assert_equal Hash.new, other_session, "session should have expired"
+    assert_equal({}, other_session, 'session should have expired')
     assert other_sid != sid
   end
 
   def test_find_expired_sessions
     expired, expiring, never_expiring = seed_sessions
-    expired_session_ids = store.expired.map {|row| row['id']}
+    expired_session_ids = store.expired.map { |row| row['id'] }
     assert expired_session_ids.include?(expired)
     assert !expired_session_ids.include?(expiring)
     assert !expired_session_ids.include?(never_expiring)
@@ -89,7 +88,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_find_never_expiring_sessions
     expired, expiring, never_expiring = seed_sessions
-    never_expiring_session_ids = store.never_expiring.map {|row| row['id']}
+    never_expiring_session_ids = store.never_expiring.map { |row| row['id'] }
     assert never_expiring_session_ids.include?(never_expiring)
     assert !never_expiring_session_ids.include?(expiring)
     assert !never_expiring_session_ids.include?(expired)
@@ -110,7 +109,7 @@ class SessionStoreTest < MiniTest::Test
   def test_store_without_expiry
     sid, session = never_expiring_session
     couch = CouchTester.new
-    assert_nil couch.get(sid)["expires"]
+    assert_nil couch.get(sid)['expires']
     assert_equal [sid, session], store.send(:get_session, env, sid)
   end
 
@@ -123,7 +122,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def env
-    Hash.new
+    {}
   end
 
   # returns the session ids of an expired, and expiring and a never
@@ -147,19 +146,18 @@ class SessionStoreTest < MiniTest::Test
 
   def init_session
     sid, session = store.send :get_session, env, nil
-    session[:key] = "stub"
-    return sid, session
+    session[:key] = 'stub'
+    [sid, session]
   end
 
   def store_session(sid, session, options = {})
     store.send :set_session, env, sid, session, options
-    return sid, session
+    [sid, session]
   end
 
   def expire_session(sid, session)
     CouchTester.new.update sid,
-      "expires" => (Time.now - 10.minutes).utc.iso8601
-    return sid, session
+                           'expires' => (Time.now - 10.minutes).utc.iso8601
+    [sid, session]
   end
-
 end

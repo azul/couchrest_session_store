@@ -1,10 +1,9 @@
 require File.expand_path(File.dirname(__FILE__) + '/test_helper')
 
 class SessionDocumentTest < MiniTest::Test
-
   def test_storing_session
     sid = '1234'
-    session = {'a' => 'b'}
+    session = { 'a' => 'b' }
     options = {}
     doc = CouchRest::Session::Document.build_or_update(sid, session, options)
     doc.save
@@ -14,7 +13,7 @@ class SessionDocumentTest < MiniTest::Test
 
   def test_storing_session_with_conflict
     sid = '1234'
-    session = {'a' => 'b'}
+    session = { 'a' => 'b' }
     options = {}
     doc = CouchRest::Session::Document.build_or_update(sid, session, options)
     doc2 = CouchRest::Session::Document.build_or_update(sid, session, options)
@@ -23,5 +22,4 @@ class SessionDocumentTest < MiniTest::Test
     doc2.fetch(sid)
     assert_equal session, doc2.to_session
   end
-
 end

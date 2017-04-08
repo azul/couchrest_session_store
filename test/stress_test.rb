@@ -6,7 +6,6 @@ require_relative 'test_helper'
 #
 
 class StressTest < MiniTest::Test
-
   COUNT = 200 # change to 200,000 if you dare
 
   class Stress < CouchRest::Model::Base
@@ -27,17 +26,15 @@ class StressTest < MiniTest::Test
     Time.stub :now, 1.day.from_now do
       Stress.rotate_database_now(window: 1.hour)
       sleep 0.5
-      assert_equal (COUNT/100)+1, Stress.database.info["doc_count"]
+      assert_equal (COUNT / 100) + 1, Stress.database.info['doc_count']
     end
   end
 
   private
 
-  def delete_all_dbs(regexp=TEST_DB_RE)
+  def delete_all_dbs(regexp = TEST_DB_RE)
     Stress.server.databases.each do |db|
-      if regexp.match(db)
-        Stress.server.database(db).delete!
-      end
+      Stress.server.database(db).delete! if regexp.match(db)
     end
   end
 

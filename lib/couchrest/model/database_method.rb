@@ -47,13 +47,13 @@ module CouchRest
           id == other.id && database.to_s == other.database.to_s
         end
       end
-      alias :eql? :==
+      alias eql? ==
 
       protected
 
       def call_database_method
-        if self.respond_to?(self.class.database_method, true)
-          name = self.send(self.class.database_method)
+        if respond_to?(self.class.database_method, true)
+          name = send(self.class.database_method)
           self.class.db_name_with_prefix(name)
         else
           self.class.send(:call_database_method)
@@ -61,21 +61,18 @@ module CouchRest
       end
 
       module ClassMethods
-
         def database_method(method = nil)
-          if method
-            @database_method = method
-          end
+          @database_method = method if method
           @database_method
         end
-        alias :use_database_method :database_method
+        alias use_database_method database_method
 
         def database
           if database_method
-            if !self.respond_to?(database_method, true)
-              raise ArgumentError.new("Incorrect argument to database_method(): no such method '#{method}' found in class #{self}.")
+            unless respond_to?(database_method, true)
+              raise ArgumentError, "Incorrect argument to database_method(): no such method '#{method}' found in class #{self}."
             end
-            self.server.database(call_database_method)
+            server.database(call_database_method)
           else
             @database ||= prepare_database(super)
           end
@@ -83,7 +80,7 @@ module CouchRest
 
         def database!
           if database_method
-            self.server.database!(call_database_method)
+            server.database!(call_database_method)
           else
             @database ||= prepare_database(super)
           end
@@ -94,18 +91,18 @@ module CouchRest
         # database method.
         #
         def choose_database(*args)
-          self.server.database(call_database_method(*args))
+          server.database(call_database_method(*args))
         end
 
         def db_name_with_prefix(name)
-          conf = self.send(:connection_configuration)
-          [conf[:prefix], name, conf[:suffix]].reject{|i|i.to_s.empty?}.join(conf[:join])
+          conf = send(:connection_configuration)
+          [conf[:prefix], name, conf[:suffix]].reject { |i| i.to_s.empty? }.join(conf[:join])
         end
 
         def database_exists?(name)
           name = db_name_with_prefix(name)
           begin
-            CouchRest.head "#{self.server.uri}/#{name}"
+            CouchRest.head "#{server.uri}/#{name}"
             return true
           rescue CouchRest::NotFound
             return false
@@ -117,14 +114,13 @@ module CouchRest
         def call_database_method(*args)
           name = nil
           method = self.method(database_method)
-          if method.arity == 0
-            name = method.call
-          else
-            name = method.call(*args)
-          end
+          name = if method.arity == 0
+                   method.call
+                 else
+                   method.call(*args)
+                 end
           db_name_with_prefix(name)
         end
-
       end
     end
   end

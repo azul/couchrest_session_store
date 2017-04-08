@@ -1,8 +1,7 @@
 require 'test_helper'
-require "byebug"
+require 'byebug'
 
 class DatabaseMethodTest < MiniTest::Test
-
   class TestModel < CouchRest::Model::Base
     include CouchRest::Model::DatabaseMethod
 
@@ -30,10 +29,10 @@ class DatabaseMethodTest < MiniTest::Test
     doc2.save!
 
     doc1_copy = CouchRest.get([doc1.database.root, doc1.id].join('/'))
-    assert_equal "yep", doc1_copy["confirm"]
+    assert_equal 'yep', doc1_copy['confirm']
 
     doc2_copy = CouchRest.get([doc2.database.root, doc2.id].join('/'))
-    assert_equal "sure", doc2_copy["confirm"]
+    assert_equal 'sure', doc2_copy['confirm']
 
     doc1.database.delete!
     doc2.database.delete!
@@ -49,8 +48,8 @@ class DatabaseMethodTest < MiniTest::Test
     doc_blue.database!
     doc_blue.save!
 
-    doc_blue_copy = CouchRest.get([root.to_s.sub('red','blue'), doc_blue.id].join('/'))
-    assert_equal "rose", doc_blue_copy["confirm"]
+    doc_blue_copy = CouchRest.get([root.to_s.sub('red', 'blue'), doc_blue.id].join('/'))
+    assert_equal 'rose', doc_blue_copy['confirm']
 
     doc_red.database.delete!
     doc_blue.database.delete!
@@ -94,15 +93,12 @@ class DatabaseMethodTest < MiniTest::Test
     protected
 
     def db_name
-      self.class.db_name(self.login)
+      self.class.db_name(login)
     end
 
     def create_db
-      unless database_exists?(db_name)
-        self.database!
-      end
+      database! unless database_exists?(db_name)
     end
-
   end
 
   def test_tmp_user_db
@@ -113,5 +109,4 @@ class DatabaseMethodTest < MiniTest::Test
     assert_equal 'test-user-1', User.server.database('couchrest_tmp_users').get(user1.id)['login']
     assert_nil User.server.database('couchrest_users').get(user1.id)
   end
-
 end
