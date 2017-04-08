@@ -39,8 +39,6 @@ module CouchRest
         end
       end
 
-      public
-
       module ClassMethods
         #
         # Set up database rotation.
@@ -133,10 +131,10 @@ module CouchRest
         #
         def create_database!(name=nil)
           db = if name
-            self.server.database!(db_name_with_prefix(name))
-          else
-            self.database!
-          end
+                 self.server.database!(db_name_with_prefix(name))
+               else
+                 self.database!
+               end
           create_rotation_filter(db)
           if self.respond_to?(:design_doc, true)
             design_doc.sync!(db)
@@ -189,16 +187,19 @@ module CouchRest
 
         def create_rotation_filter(db)
           name = 'rotation_filter'
-          filter_string = if @expiration_field
+          filters = {"not_expired" => filter_string}
+          db.save_doc("_id" => "_design/#{name}", "filters" => filters)
+        rescue CouchRest::Conflict
+        end
+
+        def filter_string
+          if @expiration_field
             NOT_EXPIRED_FILTER % {expires: @expiration_field}
           elsif @timestamp_field && @timeout
             NOT_TIMED_OUT_FILTER % {timestamp: @timestamp_field, timeout: (60 * @timeout)}
           else
             NOT_DELETED_FILTER
           end
-          filters = {"not_expired" => filter_string}
-          db.save_doc("_id" => "_design/#{name}", "filters" => filters)
-        rescue CouchRest::Conflict
         end
 
         #

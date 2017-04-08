@@ -78,18 +78,20 @@ class DatabaseMethodTest < MiniTest::Test
           return result
         end
       end
-      alias :find :get
+      alias find get
+
+      protected
+
+      def db_name(login = nil)
+        if !login.nil? && login =~ /test-user/
+          'tmp_users'
+        else
+          'users'
+        end
+      end
     end
 
     protected
-
-    def self.db_name(login = nil)
-      if !login.nil? && login =~ /test-user/
-        'tmp_users'
-      else
-        'users'
-      end
-    end
 
     def db_name
       self.class.db_name(self.login)

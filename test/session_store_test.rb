@@ -122,8 +122,8 @@ class SessionStoreTest < MiniTest::Test
     @store ||= CouchRest::Session::Store.new(app, options)
   end
 
-  def env(settings = {})
-    env ||= settings
+  def env
+    Hash.new
   end
 
   # returns the session ids of an expired, and expiring and a never

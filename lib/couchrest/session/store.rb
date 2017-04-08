@@ -36,11 +36,8 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   private
 
   def get_session(_env, sid)
-    if session = fetch_session(sid)
-      [sid, session]
-    else
-      [generate_sid, {}]
-    end
+    session = fetch_session(sid)
+    session ? [sid, session] : [generate_sid, {}]
   rescue CouchRest::NotFound
     # session data does not exist anymore
     return [sid, {}]
