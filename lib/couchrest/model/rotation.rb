@@ -17,6 +17,10 @@ module CouchRest
       def update(*args)
         super(*args)
       rescue CouchRest::NotFound => exc
+        #
+        # TODO: maybe we need to check if it's really the db missing
+        # Might as well be the document we are trying to update.
+        #
         raise storage_missing(exc)
       end
 

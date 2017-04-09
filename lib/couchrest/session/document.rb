@@ -1,6 +1,18 @@
 require 'couchrest/session/utility'
 require 'time'
 
+#
+# The Session Record itself.
+#
+# We use a simple CouchRest::Document and include the parts
+# of CouchRest::Model that seem useful.
+#
+# We are rotating the database so expired sessions get cleaned
+# up without leaving cruft in the database.
+#
+# Has a few helper class methods and takes care of creating
+# its design doc when the database is created.
+#
 class CouchRest::Session::Document < CouchRest::Document
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
@@ -43,11 +55,16 @@ class CouchRest::Session::Document < CouchRest::Document
     begin
       db.get!('_design/Session')
     rescue CouchRest::NotFound
-      design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
-      design = JSON.parse(design)
-      db.save_doc(design.merge('_id' => '_design/Session'))
+      save_design_doc
     end
     db
+  end
+
+  def self.save_design_doc
+    file = File.expand_path('../../../../design/Session.json', __FILE__)
+    string = File.read file
+    design = JSON.parse string
+    db.save_doc(design.merge('_id' => '_design/Session'))
   end
 
   def initialize(doc)
