@@ -4,16 +4,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     CouchRest::Session::Document.configure(*args, &block)
   end
 
-  def self.set_options(options)
-    @options = options
-    if @options[:database]
-      CouchRest::Session::Document.use_database @options[:database]
-    end
-  end
-
   def initialize(app, options = {})
     super
-    self.class.set_options(options)
+    @options = options
+    return unless @options[:database]
+    CouchRest::Session::Document.use_database @options[:database]
   end
 
   def cleanup(rows)
@@ -48,7 +43,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(_env, sid, session, options)
-    raise CouchRest::Unauthorized if /^_design\/(.*)/ =~ sid
+    raise CouchRest::Unauthorized if design_doc_id?(sid)
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
@@ -83,11 +78,15 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   # this should be prevented on a couch permission level as well.
   # but better be save than sorry.
   def secure_get(sid)
-    raise CouchRest::NotFound if /^_design\/(.*)/ =~ sid
+    raise CouchRest::NotFound if design_doc_id?(sid)
     CouchRest::Session::Document.fetch(sid)
   end
 
   def find_by_expires(*args)
     CouchRest::Session::Document.find_by_expires *args
+  end
+
+  def design_doc_id?(sid)
+    %r{^_design/(.*)} =~ sid
   end
 end
