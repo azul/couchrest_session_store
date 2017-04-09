@@ -67,7 +67,8 @@ module CouchRest
           @timestamp_field = options.delete(:timestamp_field)
           @timeout = options.delete(:timeout)
           if options.any?
-            raise ArgumentError, 'Could not understand options %s' % options.keys
+            raise ArgumentError,
+              'Could not understand options %s' % options.keys
           end
         end
 
@@ -92,7 +93,8 @@ module CouchRest
 
           prev_name = current_name.sub(/(\d+)$/) { |i| i.to_i - 1 }
           replication_started = false
-          old_name = prev_name.sub(/(\d+)$/) { |i| i.to_i - 1 } # even older than prev_name
+          # even older than prev_name
+          old_name = prev_name.sub(/(\d+)$/) { |i| i.to_i - 1 }
           trailing_edge_time = window.ago.utc
 
           unless database_exists?(current_name)
@@ -177,7 +179,11 @@ module CouchRest
         end
 
         def copy_design_docs(from, to)
-          params = { startkey: '_design/', endkey: '_design0', include_docs: true }
+          params = {
+            startkey: '_design/',
+            endkey: '_design0',
+            include_docs: true
+          }
           from.documents(params) do |doc_hash|
             design = doc_hash['doc']
             begin
@@ -200,7 +206,8 @@ module CouchRest
           if @expiration_field
             NOT_EXPIRED_FILTER % { expires: @expiration_field }
           elsif @timestamp_field && @timeout
-            NOT_TIMED_OUT_FILTER % { timestamp: @timestamp_field, timeout: (60 * @timeout) }
+            NOT_TIMED_OUT_FILTER %
+              { timestamp: @timestamp_field, timeout: (60 * @timeout) }
           else
             NOT_DELETED_FILTER
           end
@@ -220,7 +227,9 @@ module CouchRest
         #
         def replicate_old_to_new(from_db, to_db)
           create_rotation_filter(from_db)
-          from_db.send(:replicate, to_db, true, source: from_db.name, filter: 'rotation_filter/not_expired')
+          from_db.send :replicate, to_db, true,
+            source: from_db.name,
+            filter: 'rotation_filter/not_expired'
         end
 
         #
