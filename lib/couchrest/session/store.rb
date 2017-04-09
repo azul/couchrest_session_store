@@ -1,4 +1,18 @@
+require 'forwardable'
+require 'couchrest/session/document'
+#
+# The Session Store itself.
+#
+# This is mostly a thin wrapper around CouchRest::Session::Document that
+# * implements the ActionDispatch::Session::AbstractStore interface
+# * offers some helper functions for dealing with the entire store
+#
+# Most of the functionality still happens in CouchRest::Session::Document
+# and we use Forwardable to define delegators for that.
+#
 class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
+  extend Forwardable
+
   # delegate configure to document
   def self.configure(*args, &block)
     CouchRest::Session::Document.configure(*args, &block)
@@ -7,13 +21,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   def initialize(app, options = {})
     super
     @options = options
-    return unless @options[:database]
-    CouchRest::Session::Document.use_database @options[:database]
+    use_database @options[:database] if @options[:database]
   end
 
   def cleanup(rows)
     rows.each do |row|
-      doc = CouchRest::Session::Document.fetch(row['id'])
+      doc = fetch(row['id'])
       doc.delete
     end
   end
@@ -27,6 +40,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   private
+
+  def_delegators CouchRest::Session::Document,
+    :use_database,
+    :fetch,
+    :find_by_expires,
+    :build_or_update
 
   def get_session(_env, sid)
     session = fetch_session(sid)
@@ -44,7 +63,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   def set_session(_env, sid, session, options)
     raise CouchRest::Unauthorized if design_doc_id?(sid)
-    doc = build_or_update_doc(sid, session, options)
+    doc = build_or_update(sid, session, options)
     doc.save
     return sid
     # if we can't store the session we just return false.
@@ -70,20 +89,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     doc.to_session unless doc.expired?
   end
 
-  def build_or_update_doc(sid, session, options)
-    CouchRest::Session::Document.build_or_update(sid, session, options)
-  end
-
   # prevent access to design docs
   # this should be prevented on a couch permission level as well.
   # but better be save than sorry.
   def secure_get(sid)
     raise CouchRest::NotFound if design_doc_id?(sid)
-    CouchRest::Session::Document.fetch(sid)
-  end
-
-  def find_by_expires(*args)
-    CouchRest::Session::Document.find_by_expires *args
+    fetch(sid)
   end
 
   def design_doc_id?(sid)
