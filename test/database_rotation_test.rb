@@ -9,60 +9,110 @@ class RotationTest < MiniTest::Test
 
   TEST_DB_RE = /test_rotate_\d+/
 
-  def test_rotate
+  def setup
     delete_all_dbs
-    doc = nil
-    original_name = nil
-    next_db_name = nil
-
     Time.stub :now, Time.gm(2015, 3, 7, 0) do
       Token.create_database!
-      doc = Token.create!(token: 'aaaa')
-      original_name = Token.rotated_database_name
-      assert database_exists?(original_name)
-      assert_equal 1, count_dbs
+      @doc = Token.create!(token: 'aaaa')
+      @original_name = Token.rotated_database_name
+      @next_db_name = Token.rotated_database_name(Time.gm(2015, 3, 8))
     end
+  end
 
-    # do nothing yet
+  def teardown
+    delete_all_dbs
+  end
+
+  def test_initial_db
+    assert database_exists?(original_name)
+    assert_equal 1, count_dbs
+    refute_equal original_name, next_db_name
+  end
+
+  def test_do_nothing_yet
     Time.stub :now, Time.gm(2015, 3, 7, 22) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal original_name, Token.rotated_database_name
       assert_equal 1, count_dbs
     end
+  end
 
-    # create next db, but don't switch yet.
+  def test_create_next_db
     Time.stub :now, Time.gm(2015, 3, 7, 23) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
-      next_db_name = Token.rotated_database_name(Time.gm(2015, 3, 8))
-      assert original_name != next_db_name
       assert database_exists?(next_db_name)
-      sleep 0.2 # allow time for documents to replicate
-      assert_equal(
-        Token.get(doc.id).token,
-        Token.get(doc.id, database(next_db_name)).token
-      )
     end
+  end
 
-    # use next db
+  def test_replicate_to_next_db
+    Time.stub :now, Time.gm(2015, 3, 7, 23) do
+      Token.rotate_database_now(window: 1.hour)
+      sleep 0.2 # allow time for documents to replicate
+      assert_equal current_token, next_token
+    end
+  end
+
+  def test_use_next_db
     Time.stub :now, Time.gm(2015, 3, 8) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal 2, count_dbs
       assert_equal next_db_name, Token.rotated_database_name
-      token = Token.get(doc.id)
-      token.update_attributes(token: 'bbbb')
-      assert_equal 'bbbb', Token.get(doc.id).token
-      assert_equal 'aaaa', Token.get(doc.id, database(original_name)).token
     end
+  end
 
-    # delete prior db
+  def test_next_db_is_independent
+    Time.stub :now, Time.gm(2015, 3, 8) do
+      Token.rotate_database_now(window: 1.hour)
+      sleep 0.2 # allow time for documents to replicate
+      current_token.update_attributes(token: 'bbbb')
+      assert_equal 'bbbb', current_token.token
+      assert_equal 'aaaa', original_token.token
+    end
+  end
+
+  def test_delete_prior_db
+    Time.stub :now, Time.gm(2015, 3, 8) do
+      Token.rotate_database_now(window: 1.hour)
+    end
     Time.stub :now, Time.gm(2015, 3, 8, 1) do
       Token.rotate_database_now(window: 1.hour)
+      assert_equal next_db_name, Token.rotated_database_name
+      assert_equal 'aaaa', current_token.token
       assert_equal 1, count_dbs
     end
   end
 
+  # TODO: This most likely is a bug
+  # We should not have to run the rotation in the exact window.
+  # Documentation says:
+  # rotate_database_now relies on the assumption that it is called
+  # at least once within each @rotation_every period.
+  # But it looks like it acutally has to be rotated during the window
+  # of that period.
+  def test_rotation_has_to_happen_in_window
+    Time.stub :now, Time.gm(2015, 3, 8, 1) do
+      Token.rotate_database_now(window: 1.hour)
+      assert_equal next_db_name, Token.rotated_database_name
+      assert_nil current_token
+    end
+  end
+
   private
+
+  attr_reader :doc, :original_name, :next_db_name
+
+  def current_token
+    Token.get(doc.id)
+  end
+
+  def original_token
+    Token.get(doc.id, database(original_name))
+  end
+
+  def next_token
+    Token.get(doc.id, database(next_db_name))
+  end
 
   def database(db_name)
     Token.server.database(Token.db_name_with_prefix(db_name))
