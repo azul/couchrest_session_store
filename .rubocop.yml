@@ -1,2 +1,10 @@
 Style/AlignParameters:
   EnforcedStyle: with_fixed_indentation
+Style/AlignHash:
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
+Style/InverseMethods:
+  # no select! => reject! because CouchrestModel::Document only implements
+  # reject!
+  # Somehow i did not manage to configure this with more precision
+  Enabled: No

@@ -73,7 +73,7 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def update(session, options)
     # clean up old data but leave id and revision intact
-    doc.reject! {|k, _v| k[0] != '_'}
+    doc.reject! { |k, _v| k[0] != '_' }
     doc.merge! data_for_doc(session, options)
   end
 
@@ -96,9 +96,9 @@ class CouchRest::Session::Document < CouchRest::Document
   protected
 
   def data_for_doc(session, options)
-    { 'data' => options[:marshal_data] ? marshal(session) : session,
+    { 'data'       => options[:marshal_data] ? marshal(session) : session,
       'marshalled' => options[:marshal_data],
-      'expires' => expiry_from_options(options) }
+      'expires'    => expiry_from_options(options) }
   end
 
   def expiry_from_options(options)

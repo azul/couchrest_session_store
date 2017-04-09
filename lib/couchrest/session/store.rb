@@ -24,12 +24,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def expired
-    CouchRest::Session::Document.find_by_expires startkey: 1,
-                                                 endkey: Time.now.utc.iso8601
+    find_by_expires startkey: 1, endkey: Time.now.utc.iso8601
   end
 
   def never_expiring
-    CouchRest::Session::Document.find_by_expires endkey: 1
+    find_by_expires endkey: 1
   end
 
   private
@@ -86,5 +85,9 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   def secure_get(sid)
     raise CouchRest::NotFound if /^_design\/(.*)/ =~ sid
     CouchRest::Session::Document.fetch(sid)
+  end
+
+  def find_by_expires(*args)
+    CouchRest::Session::Document.find_by_expires *args
   end
 end
