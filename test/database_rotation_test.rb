@@ -78,7 +78,6 @@ class RotationTest < MiniTest::Test
     Time.stub :now, Time.gm(2015, 3, 8, 1) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal next_db_name, Token.rotated_database_name
-      assert_equal 'aaaa', current_token.token
       assert_equal 1, count_dbs
     end
   end

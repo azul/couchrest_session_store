@@ -1,5 +1,11 @@
+require 'couchrest/model/rotating_database'
 module CouchRest
   module Model
+    #
+    # Mixin to rotate the underlying database of a couchrest model
+    #
+    # including this prevents deleted documents from pileing up.
+    #
     module Rotation
       extend ActiveSupport::Concern
       include CouchRest::Model::DatabaseMethod
@@ -83,53 +89,47 @@ module CouchRest
         def rotate_database_now(options = {})
           window = options[:window] || 1.day
 
-          now = Time.now.utc
-          current_name = rotated_database_name(now)
-          current_count = now.to_i / @rotation_every
+          current = RotatingDatabase.new @rotation_base_name, @rotation_every
 
-          next_time = window.from_now.utc
-          next_name = rotated_database_name(next_time)
-          next_count = current_count + 1
-
-          prev_name = current_name.sub(/(\d+)$/) { |i| i.to_i - 1 }
+          after_window = current.after window
+          next_db = current + 1
+          prev_db = current - 1
+          # even older than prev_db
+          old_db = prev_db - 1
           replication_started = false
-          # even older than prev_name
-          old_name = prev_name.sub(/(\d+)$/) { |i| i.to_i - 1 }
-          trailing_edge_time = window.ago.utc
 
-          unless database_exists?(current_name)
+          unless database_exists?(current.name)
             # we should have created the current db earlier, but if somehow
             # it is missing we must make sure it exists.
-            create_new_rotated_database(from: prev_name, to: current_name)
+            create_new_rotated_database(from: prev_db, to: current)
             replication_started = true
           end
 
-          if next_time.to_i / @rotation_every >= next_count && !database_exists?(next_name)
+          if after_window == next_db && !database_exists?(next_db.name)
             # time to create the next db in advance of actually needing it.
-            create_new_rotated_database(from: current_name, to: next_name)
+            create_new_rotated_database(from: current, to: next_db)
           end
 
-          if trailing_edge_time.to_i / @rotation_every == current_count
+          trailing_edge_time = window.ago.utc
+          if trailing_edge_time.to_i / @rotation_every == current.count
             # delete old dbs, but only after window time has past since the last rotation
-            if !replication_started && database_exists?(prev_name)
+            if !replication_started && database_exists?(prev_db.name)
               # delete previous, but only if we didn't just start replicating from it
-              server.database(db_name_with_prefix(prev_name)).delete!
+              server.database(db_name_with_prefix(prev_db.name)).delete!
             end
-            if database_exists?(old_name)
+            if database_exists?(old_db.name)
               # there are some edge cases, when rotate_database_now is run
               # infrequently, that an older db might be left around.
-              server.database(db_name_with_prefix(old_name)).delete!
+              server.database(db_name_with_prefix(old_db.name)).delete!
             end
           end
         end
 
         def rotated_database_name(time = nil)
-          unless @rotation_base_name && @rotation_every
-            raise ArgumentError, 'missing @rotation_base_name or @rotation_every'
-          end
-          time ||= Time.now.utc
-          units = time.to_i / @rotation_every.to_i
-          "#{@rotation_base_name}_#{units}"
+          current = RotatingDatabase.new @rotation_base_name,
+            @rotation_every,
+            now: time
+          current.name
         end
 
         #
@@ -167,13 +167,13 @@ module CouchRest
         def create_new_rotated_database(options = {})
           from = options[:from]
           to = options[:to]
-          to_db = create_database!(to)
+          to_db = create_database!(to.name)
           if database_exists?(@rotation_base_name)
             base_db = server.database(db_name_with_prefix(@rotation_base_name))
             copy_design_docs(base_db, to_db)
           end
-          if from && from != to && database_exists?(from)
-            from_db = server.database(db_name_with_prefix(from))
+          if from && from != to && database_exists?(from.name)
+            from_db = server.database(db_name_with_prefix(from.name))
             replicate_old_to_new(from_db, to_db)
           end
         end
