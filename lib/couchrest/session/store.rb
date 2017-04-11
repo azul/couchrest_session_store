@@ -1,5 +1,6 @@
 require 'forwardable'
 require 'couchrest/session/document'
+require 'action_dispatch' #/session/abstract_store'
 #
 # The Session Store itself.
 #

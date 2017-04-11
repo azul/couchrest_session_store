@@ -1,8 +1,6 @@
-require 'rubygems'
-gem 'minitest'
 require 'minitest/autorun'
-require_relative '../lib/couchrest_session_store.rb'
-require_relative 'couch_tester.rb'
+require 'active_support'
+require 'active_support/core_ext'
 
-# Create the session db if it does not already exist.
-CouchRest::Session::Document.create_database!
+# make sure we require our own lib rather than an installed gem
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)

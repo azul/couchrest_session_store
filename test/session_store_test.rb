@@ -1,5 +1,6 @@
 require 'test_helper'
 require 'session_store_tester'
+require 'couch_tester'
 
 class SessionStoreTest < MiniTest::Test
   # by default we create a session that does not expire

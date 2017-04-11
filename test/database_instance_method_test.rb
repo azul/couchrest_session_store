@@ -1,4 +1,6 @@
 require 'test_helper'
+require 'couchrest_model'
+require 'couchrest/model/database_method'
 
 class DatabaseInstanceMethodTest < MiniTest::Test
   class TestModel < CouchRest::Model::Base

@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'couchrest/session/store'
 
 class SessionStoreFinderTest < MiniTest::Test
   def setup

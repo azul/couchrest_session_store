@@ -1,4 +1,5 @@
-require_relative 'test_helper'
+require 'test_helper'
+require 'couchrest/model/rotation'
 
 class RotationTest < MiniTest::Test
   class Token < CouchRest::Model::Base
@@ -82,18 +83,12 @@ class RotationTest < MiniTest::Test
     end
   end
 
-  # TODO: This most likely is a bug
-  # We should not have to run the rotation in the exact window.
-  # Documentation says:
-  # rotate_database_now relies on the assumption that it is called
-  # at least once within each @rotation_every period.
-  # But it looks like it acutally has to be rotated during the window
-  # of that period.
-  def test_rotation_has_to_happen_in_window
-    Time.stub :now, Time.gm(2015, 3, 8, 1) do
+  def test_rotation_after_window
+    Time.stub :now, Time.gm(2015, 3, 8, 2) do
       Token.rotate_database_now(window: 1.hour)
       assert_equal next_db_name, Token.rotated_database_name
-      assert_nil current_token
+      sleep 0.2
+      assert_equal 'aaaa', current_token.token
     end
   end
 

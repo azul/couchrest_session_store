@@ -1,4 +1,6 @@
 require 'test_helper'
+require 'couchrest_model'
+require 'couchrest/model/rotation'
 
 #
 # This doesn't really test much, but is useful if you want to see what happens

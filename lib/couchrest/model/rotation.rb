@@ -1,4 +1,8 @@
+require 'active_support/all'
+require 'couchrest_model'
+require 'couchrest/model/database_method'
 require 'couchrest/model/rotating_database'
+
 module CouchRest
   module Model
     #
@@ -69,9 +73,11 @@ module CouchRest
         def rotate_database(base_name, options = {})
           @rotation_base_name = base_name
           @rotation_every = (options.delete(:every) || 30.days).to_i
-          @expiration_field = options.delete(:expiration_field)
-          @timestamp_field = options.delete(:timestamp_field)
-          @timeout = options.delete(:timeout)
+          @rotation_config = {
+            expires: options.delete(:expiration_field),
+            timestamp: options.delete(:timestamp_field),
+            timeout: options.delete(:timeout)
+          }
           if options.any?
             raise ArgumentError,
               'Could not understand options %s' % options.keys
@@ -86,190 +92,55 @@ module CouchRest
         # This method relies on the assumption that it is called
         # at least once within each @rotation_every period.
         #
-        def rotate_database_now(options = {})
-          window = options[:window] || 1.day
-
-          current = RotatingDatabase.new @rotation_base_name, @rotation_every
-
-          after_window = current.after window
-          next_db = current + 1
-          prev_db = current - 1
-          # even older than prev_db
-          old_db = prev_db - 1
+        def rotate_database_now(window: 1.day)
+          current = rotating_database
           replication_started = false
-
-          unless database_exists?(current.name)
-            # we should have created the current db earlier, but if somehow
-            # it is missing we must make sure it exists.
-            create_new_rotated_database(from: prev_db, to: current)
+          unless current.exist?
+            create_rotated_database(current)
             replication_started = true
           end
+          create_rotated_database(current + 1) if current.rotate_in? window
+          return if current.rotated_since? window
+          (current - 2).db.delete! if (current - 2).exist?
+          return if replication_started
+          (current - 1).db.delete! if (current - 1).exist?
+        end
 
-          if after_window == next_db && !database_exists?(next_db.name)
-            # time to create the next db in advance of actually needing it.
-            create_new_rotated_database(from: current, to: next_db)
-          end
-
-          trailing_edge_time = window.ago.utc
-          if trailing_edge_time.to_i / @rotation_every == current.count
-            # delete old dbs, but only after window time has past since the last rotation
-            if !replication_started && database_exists?(prev_db.name)
-              # delete previous, but only if we didn't just start replicating from it
-              server.database(db_name_with_prefix(prev_db.name)).delete!
-            end
-            if database_exists?(old_db.name)
-              # there are some edge cases, when rotate_database_now is run
-              # infrequently, that an older db might be left around.
-              server.database(db_name_with_prefix(old_db.name)).delete!
-            end
-          end
+        def rotating_database(name = nil, time: nil)
+          name ||= db_name_with_prefix @rotation_base_name
+          RotatingDatabase.new server, name,
+            frequency: @rotation_every,
+            now: time,
+            **@rotation_config
         end
 
         def rotated_database_name(time = nil)
-          current = RotatingDatabase.new @rotation_base_name,
-            @rotation_every,
-            now: time
-          current.name
+          rotating_database(@rotation_base_name, time: time).name
         end
 
-        #
-        # create a new empty database.
-        #
         def create_database!(name = nil)
-          db = if name
-                 server.database!(db_name_with_prefix(name))
-               else
-                 database!
-               end
-          create_rotation_filter(db)
-          if respond_to?(:design_doc, true)
-            design_doc.sync!(db)
-            # or maybe this?:
-            # self.design_docs.each do |design|
-            #  design.migrate(to_db)
-            # end
-          end
-          db
+          rotating_database.create
         end
 
         protected
 
         #
-        # Creates database named by options[:to]. Optionally, set up
-        # continuous replication from the options[:from] db, if it exists. The
-        # assumption is that the from db will be destroyed later, cleaning up
+        # Creates database for rotating db given as rotating. Sets up
+        # continuous replication from the previous db, if it exists. The
+        # assumption is that the source db will be destroyed later, cleaning up
         # the replication once it is no longer needed.
         #
-        # This method will also copy design documents if present in the from
-        # db, in the CouchRest::Model, or in a database named after
-        # @rotation_base_name.
+        # This method will also copy design documents if present in
+        #  * source db,
+        #  * the CouchRest::Model,
+        #  * or a database named after rotation_base_name.
         #
-        def create_new_rotated_database(options = {})
-          from = options[:from]
-          to = options[:to]
-          to_db = create_database!(to.name)
-          if database_exists?(@rotation_base_name)
-            base_db = server.database(db_name_with_prefix(@rotation_base_name))
-            copy_design_docs(base_db, to_db)
-          end
-          if from && from != to && database_exists?(from.name)
-            from_db = server.database(db_name_with_prefix(from.name))
-            replicate_old_to_new(from_db, to_db)
-          end
+        def create_rotated_database(rotating)
+          db = rotating.create
+          design_doc.sync!(db) if respond_to?(:design_doc, true)
+          rotating.copy_design_docs_from_base
+          rotating.replicate_from_previous
         end
-
-        def copy_design_docs(from, to)
-          params = {
-            startkey: '_design/',
-            endkey: '_design0',
-            include_docs: true
-          }
-          from.documents(params) do |doc_hash|
-            design = doc_hash['doc']
-            begin
-              to.get(design['_id'])
-            rescue CouchRest::NotFound
-              design.delete('_rev')
-              to.save_doc(design)
-            end
-          end
-        end
-
-        def create_rotation_filter(db)
-          name = 'rotation_filter'
-          filters = { 'not_expired' => filter_string }
-          db.save_doc('_id' => "_design/#{name}", 'filters' => filters)
-        rescue CouchRest::Conflict
-        end
-
-        def filter_string
-          if @expiration_field
-            NOT_EXPIRED_FILTER % { expires: @expiration_field }
-          elsif @timestamp_field && @timeout
-            NOT_TIMED_OUT_FILTER %
-              { timestamp: @timestamp_field, timeout: (60 * @timeout) }
-          else
-            NOT_DELETED_FILTER
-          end
-        end
-
-        #
-        # Replicates documents from_db to to_db, skipping documents that have
-        # expired or been deleted.
-        #
-        # NOTE: It would be better if we could do this:
-        #
-        #   from_db.replicate_to(to_db, true, false,
-        #     :filter => 'rotation_filter/not_expired')
-        #
-        # But replicate_to() does not support a filter argument, so we call
-        # the private method replication() directly.
-        #
-        def replicate_old_to_new(from_db, to_db)
-          create_rotation_filter(from_db)
-          from_db.send :replicate, to_db, true,
-            source: from_db.name,
-            filter: 'rotation_filter/not_expired'
-        end
-
-        #
-        # Three different filters, depending on how the model is set up.
-        #
-        # NOT_EXPIRED_FILTER is used when there is a single field that
-        # contains an absolute time for when the document has expired. The
-        #
-        # NOT_TIMED_OUT_FILTER is used when there is a field that records the
-        # timestamp of the last time the document was used. The expiration in
-        # this case is calculated from the timestamp plus @timeout.
-        #
-        # NOT_DELETED_FILTER is used when the other two cannot be.
-        #
-        NOT_EXPIRED_FILTER = '' +
-                             %[function(doc, req) {
-                               if (doc._deleted) {
-                                 return false;
-                               } else if (typeof(doc.%{expires}) != "undefined") {
-                                 return Date.now() < (new Date(doc.%{expires})).getTime();
-                               } else {
-                                 return true;
-                               }
-                             }]
-
-        NOT_TIMED_OUT_FILTER = '' +
-                               %[function(doc, req) {
-                                 if (doc._deleted) {
-                                   return false;
-                                 } else if (typeof(doc.%{timestamp}) != "undefined") {
-                                   return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
-                                 } else {
-                                   return true;
-                                 }
-                               }]
-
-        NOT_DELETED_FILTER = '' +
-                             %[function(doc, req) {
-                               return !doc._deleted;
-                             }]
       end
     end
   end
