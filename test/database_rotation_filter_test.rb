@@ -47,5 +47,4 @@ class RotationFilterTest < MiniTest::Test
     ExpiringToken.create! token: 'aaaa', expires_at: Time.gm(2015, 3, 7, 22)
     ExpiringToken.create! token: 'aaaa', expires_at: Time.gm(2215, 3, 8, 1)
   end
-
 end

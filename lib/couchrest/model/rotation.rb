@@ -74,9 +74,9 @@ module CouchRest
           @rotation_base_name = base_name
           @rotation_every = (options.delete(:every) || 30.days).to_i
           @rotation_config = {
-            expires: options.delete(:expiration_field),
+            expires:   options.delete(:expiration_field),
             timestamp: options.delete(:timestamp_field),
-            timeout: options.delete(:timeout)
+            timeout:   options.delete(:timeout)
           }
           if options.any?
             raise ArgumentError,
@@ -110,7 +110,7 @@ module CouchRest
           name ||= db_name_with_prefix @rotation_base_name
           RotatingDatabase.new server, name,
             frequency: @rotation_every,
-            now: time,
+            now:       time,
             **@rotation_config
         end
 
@@ -118,7 +118,7 @@ module CouchRest
           rotating_database(@rotation_base_name, time: time).name
         end
 
-        def create_database!(name = nil)
+        def create_database!(_name = nil)
           rotating_database.create
         end
 

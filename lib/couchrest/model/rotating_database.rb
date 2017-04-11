@@ -7,8 +7,7 @@ module CouchRest
     # used by CouchRest::Model::Rotation
     #
     class RotatingDatabase
-
-      def initialize(server, basename, frequency: , now: nil, **config_args)
+      def initialize(server, basename, frequency:, now: nil, **config_args)
         @server = server
         @basename = basename
         @frequency = frequency
@@ -41,7 +40,7 @@ module CouchRest
       def create
         @db = server.database! name
         create_rotation_filter
-        return db
+        db
       end
 
       def db
@@ -86,7 +85,7 @@ module CouchRest
       def after(seconds)
         self.class.new server, basename,
           frequency: frequency,
-          now: now + seconds,
+          now:       now + seconds,
           **config
       end
 
@@ -98,12 +97,13 @@ module CouchRest
       end
 
       protected
+
       attr_reader :server, :basename, :frequency, :now, :config
 
       def copy_design_docs(source)
         params = {
-          startkey: '_design/',
-          endkey: '_design0',
+          startkey:     '_design/',
+          endkey:       '_design0',
           include_docs: true
         }
         source.documents(params) do |doc_hash|
@@ -170,32 +170,35 @@ module CouchRest
       #
       # NOT_DELETED_FILTER is used when the other two cannot be.
       #
-      NOT_EXPIRED_FILTER = '' +
-        %[function(doc, req) {
-                               if (doc._deleted) {
-                                 return false;
-                               } else if (typeof(doc.%{expires}) != "undefined") {
-                                 return Date.now() < (new Date(doc.%{expires})).getTime();
-                               } else {
-                                 return true;
-                               }
-                             }]
+      NOT_EXPIRED_FILTER = <<-EOJS.freeze
+  function(doc, req) {
+    if (doc._deleted) {
+      return false;
+    } else if (typeof(doc.%{expires}) != "undefined") {
+      return Date.now() < (new Date(doc.%{expires})).getTime();
+    } else {
+      return true;
+    }
+  }
+      EOJS
 
-      NOT_TIMED_OUT_FILTER = '' +
-      %[function(doc, req) {
-                                 if (doc._deleted) {
-                                   return false;
-                                 } else if (typeof(doc.%{timestamp}) != "undefined") {
-                                   return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
-                                 } else {
-                                   return true;
-                                 }
-                               }]
+      NOT_TIMED_OUT_FILTER = <<-EOJS.freeze
+  function(doc, req) {
+    if (doc._deleted) {
+      return false;
+    } else if (typeof(doc.%{timestamp}) != "undefined") {
+      return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
+    } else {
+      return true;
+    }
+  }
+      EOJS
 
-      NOT_DELETED_FILTER = '' +
-      %[function(doc, req) {
-                               return !doc._deleted;
-                             }]
+      NOT_DELETED_FILTER = <<-EOJS.freeze
+  function(doc, req) {
+    return !doc._deleted;
+  }
+      EOJS
     end
   end
 end

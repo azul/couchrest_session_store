@@ -3,7 +3,6 @@ require 'couchrest/model/rotating_database'
 require 'couchrest'
 
 class RotatingDatabaseTest < Minitest::Test
-
   def setup
     @rotating = rotating_database 'prefixed_name', frequency: frequency
   end
@@ -20,8 +19,8 @@ class RotatingDatabaseTest < Minitest::Test
   end
 
   def test_not_existing
-    raises_not_found = -> (_url) { raise CouchRest::NotFound }
-    CouchRest.stub :head, raises_not_found  do
+    raises_not_found = ->(_url) { raise CouchRest::NotFound }
+    CouchRest.stub :head, raises_not_found do
       refute_predicate rotating, :exist?
     end
   end
@@ -44,17 +43,13 @@ class RotatingDatabaseTest < Minitest::Test
     db.verify
   end
 
-  def test_copy_design_docs_from_base
-  end
+  def test_copy_design_docs_from_base; end
 
-  def test_create_next
-  end
+  def test_create_next; end
 
-  def test_delete_previous
-  end
+  def test_delete_previous; end
 
-  def test_delete_old
-  end
+  def test_delete_old; end
 
   protected
 
@@ -83,5 +78,4 @@ class RotatingDatabaseTest < Minitest::Test
     end
     mock
   end
-
 end

@@ -2,7 +2,6 @@ require 'test_helper'
 require 'couchrest/session/document'
 
 class SessionDocumentTest < MiniTest::Test
-
   def setup
     CouchRest::Session::Document.database!
   end
