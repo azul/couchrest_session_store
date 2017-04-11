@@ -1,3 +1,5 @@
+require 'couchrest_model'
+require 'couchrest/model/rotation'
 #
 # Access the couch directly so we can test its state without relying
 # on the SessionStore

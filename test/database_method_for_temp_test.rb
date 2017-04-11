@@ -1,4 +1,6 @@
 require 'test_helper'
+require 'couchrest_model'
+require 'couchrest/model/database_method'
 
 #
 # A test scenario for database_method in which some user accounts

@@ -14,7 +14,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def teardown
-    @store.destroy_session sid
+    store.database.delete!
   end
 
   def test_session_initialization

@@ -1,9 +1,11 @@
 require 'test_helper'
+require 'couch_tester'
 require 'couchrest/session/store'
 
 class SessionStoreFinderTest < MiniTest::Test
   def setup
     @store = CouchRest::Session::Store.new(nil, {})
+    store.create_database!
     @couch = CouchTester.new
     @no_expiry = seed_session
     @fresh = seed_session expires: (Time.now + 10.minutes)
@@ -11,9 +13,7 @@ class SessionStoreFinderTest < MiniTest::Test
   end
 
   def teardown
-    sessions.each do |sid|
-      store.send :destroy_session, env, sid, drop: true
-    end
+    store.database.delete!
   end
 
   def test_find_expired_sessions

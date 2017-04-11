@@ -66,7 +66,7 @@ class CouchRest::Session::Document < CouchRest::Document
     file = File.expand_path('../../../../design/Session.json', __FILE__)
     string = File.read file
     design = JSON.parse string
-    db.save_doc(design.merge('_id' => '_design/Session'))
+    database.save_doc(design.merge('_id' => '_design/Session'))
   end
 
   def initialize(doc)

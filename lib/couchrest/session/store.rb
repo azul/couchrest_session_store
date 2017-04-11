@@ -44,6 +44,8 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   def_delegators CouchRest::Session::Document,
     :use_database,
+    :create_database!,
+    :database,
     :fetch,
     :find_by_expires,
     :build_or_update

@@ -10,6 +10,7 @@ require 'couchrest/session/store'
 class SessionStoreTester
   def initialize
     @store = CouchRest::Session::Store.new(app, {})
+    store.create_database!
   end
 
   def get_session(sid = nil)
@@ -26,6 +27,10 @@ class SessionStoreTester
 
   def cleanup(sessions)
     store.cleanup sessions
+  end
+
+  def database
+    store.database
   end
 
   protected

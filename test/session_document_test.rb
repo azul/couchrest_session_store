@@ -1,6 +1,16 @@
-require File.expand_path(File.dirname(__FILE__) + '/test_helper')
+require 'test_helper'
+require 'couchrest/session/document'
 
 class SessionDocumentTest < MiniTest::Test
+
+  def setup
+    CouchRest::Session::Document.database!
+  end
+
+  def teardown
+    CouchRest::Session::Document.database.delete!
+  end
+
   def test_storing_session
     sid = '1234'
     session = { 'a' => 'b' }
