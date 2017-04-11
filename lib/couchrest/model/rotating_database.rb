@@ -43,10 +43,6 @@ module CouchRest
         db
       end
 
-      def db
-        @db ||= server.database name
-      end
-
       def copy_design_docs_from_base
         if exist?(basename)
           base_db = server.database(basename)
@@ -96,9 +92,17 @@ module CouchRest
       rescue CouchRest::Conflict
       end
 
+      def delete
+        db.delete! if exist?
+      end
+
       protected
 
       attr_reader :server, :basename, :frequency, :now, :config
+
+      def db
+        @db ||= server.database name
+      end
 
       def copy_design_docs(source)
         params = {

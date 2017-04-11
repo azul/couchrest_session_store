@@ -78,10 +78,8 @@ module CouchRest
             timestamp: options.delete(:timestamp_field),
             timeout:   options.delete(:timeout)
           }
-          if options.any?
-            raise ArgumentError,
-              'Could not understand options %s' % options.keys
-          end
+          return unless options.any?
+          raise ArgumentError, "Could not understand options #{options.keys}"
         end
 
         #
@@ -101,9 +99,8 @@ module CouchRest
           end
           create_rotated_database(current + 1) if current.rotate_in? window
           return if current.rotated_since? window
-          (current - 2).db.delete! if (current - 2).exist?
-          return if replication_started
-          (current - 1).db.delete! if (current - 1).exist?
+          (current - 1).delete unless replication_started
+          (current - 2).delete
         end
 
         def rotating_database(name = nil, time: nil)

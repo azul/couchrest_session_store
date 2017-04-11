@@ -47,9 +47,7 @@ class RotatingDatabaseTest < Minitest::Test
 
   def test_create_next; end
 
-  def test_delete_previous; end
-
-  def test_delete_old; end
+  def test_delete; end
 
   protected
 
