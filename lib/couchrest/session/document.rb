@@ -1,4 +1,6 @@
 require 'couchrest/session/utility'
+require 'couchrest/model/rotation'
+require 'couchrest/storage_missing'
 require 'time'
 
 #

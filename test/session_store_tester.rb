@@ -1,3 +1,5 @@
+require 'couchrest/session/store'
+
 #
 # A simple wrapper around the store that makes testing it easier.
 # It exposes the protected methods that are usually triggered by

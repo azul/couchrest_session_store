@@ -1,11 +1,5 @@
 module CouchRest
   #
-  # The main namespace
-  #
-  module Session
-  end
-
-  #
   # StorageMissing is used by CouchRest::Model::Rotation to indicate the
   # underlying database is missing.
   #
