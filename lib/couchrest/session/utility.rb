@@ -1,10 +1,10 @@
-#
-# Simple Utility Class for CouchRest::Session::Document
-#
-# currently only handles marshaling
-#
 module CouchRest
   module Session
+    #
+    # Simple Utility Class for CouchRest::Session::Document
+    #
+    # currently only handles marshaling
+    #
     module Utility
       module_function
 
